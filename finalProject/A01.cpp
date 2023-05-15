@@ -64,8 +64,6 @@ struct Model {
 	const float scale;
 };
 
-/* hello */
-
 const std::vector<Model> SceneToLoad = {
 	{"Plane.obj", "Colors.png", {0,0,0}, 1},
 	{"Plane2.obj", "Colors.png", {0,0,0}, 1}
