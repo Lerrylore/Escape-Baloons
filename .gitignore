@@ -364,3 +364,6 @@ FodyWeavers.xsd
 /A15.sln
 /A15.vcxproj
 *.html
+/finalProject/A15.sln
+/finalProject/A15.vcxproj.filters
+/finalProject/A15.vcxproj
