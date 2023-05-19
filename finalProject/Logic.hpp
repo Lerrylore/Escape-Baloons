@@ -18,8 +18,8 @@ void GameLogic(Assignment07 *A, float Ar, glm::mat4 &ViewPrj, glm::mat4 &World) 
 	const glm::vec3 StartingPosition = glm::vec3(-41.50, 0.0, -19.5);
 	
 	// Camera target height and distance
-	const float camHeight = 0.4;
-	const float camDist = 1.5;
+	const float camHeight = 5.4;
+	const float camDist = 4.5;
 	// Camera Pitch limits
 	const float minPitch = glm::radians(-8.75f);
 
@@ -71,16 +71,21 @@ void GameLogic(Assignment07 *A, float Ar, glm::mat4 &ViewPrj, glm::mat4 &World) 
 
 
 	
-	pitch += ROT_SPEED * r.x * deltaT;
-	if (pitch <= minPitch) pitch = minPitch;
-	if (pitch >= maxPitch) pitch = maxPitch;
+	pitch += ROT_SPEED * r.x * deltaT/4;
+	//if (pitch <= minPitch) pitch = minPitch;
+	//if (pitch >= maxPitch) pitch = maxPitch;
 	roll += ROT_SPEED * r.z * deltaT;
 
 	Pos += ux * MOVE_SPEED * m.x * deltaT;
 
 	Pos += uy * MOVE_SPEED * m.y * deltaT;
+	//constraints check
 	if (Pos.y <= 0) Pos.y = 0;
 	if (Pos.y > 0 && m.y == 0) Pos.y -= 0.01;
+	if (Pos.x > 5.0f) Pos.x = 5.0f;
+	if (Pos.x < -5.0f) Pos.x = -5.0f;
+	if (Pos.z > 5.0f) Pos.z = 5.0f;
+	if (Pos.z < -5.0f) Pos.z = -5.0f;
 
 	Pos += uz * MOVE_SPEED * m.z * deltaT;
 
