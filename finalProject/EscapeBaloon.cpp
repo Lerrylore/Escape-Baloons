@@ -25,9 +25,9 @@ struct OverlayUniformBlock {
 };
 
 struct GlobalUniformBlock {
+	alignas(16) glm::vec3 lightPos;
 	alignas(16) glm::vec3 DlightDir;
 	alignas(16) glm::vec3 DlightColor;
-	alignas(16) glm::vec3 AmbLightColor;
 	alignas(16) glm::vec3 eyePos;
 };
 
@@ -85,7 +85,7 @@ class SlotMachine : public BaseProject {
 		// window size, titile and initial background
 		windowWidth = 800;
 		windowHeight = 600;
-		windowTitle = "Slot Machine";
+		windowTitle = "Escape Baloon";
     	windowResizable = GLFW_TRUE;
 		initialBackgroundColor = {0.0f, 0.005f, 0.01f, 1.0f};
 		
@@ -343,7 +343,7 @@ class SlotMachine : public BaseProject {
 		glm::mat4 WorldMatrix;
 
 		static float yaw = 0.0f;
-		static float pitch = glm::radians(-45.0f);
+		static float pitch = glm::radians(-65.0f);
 		static float roll = 0.0f;
 		static float yaw2 = 0.0f;
 		// static variables for current angles
@@ -410,10 +410,10 @@ class SlotMachine : public BaseProject {
 		
 
 
-		gubo.DlightDir = glm::normalize(glm::vec3(1, 2, 3));
+		gubo.DlightDir = glm::normalize(camPos - newPos);
 		gubo.DlightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-		gubo.AmbLightColor = glm::vec3(0.1f);
 		gubo.eyePos = camPos;
+		gubo.lightPos = Pos + glm::vec3(0,5,-0.6f);
 
 		// Writes value to the GPU
 		DSGubo.map(currentImage, &gubo, sizeof(gubo), 0);
@@ -433,7 +433,7 @@ class SlotMachine : public BaseProject {
 		uboFloor.amb = 1.0f; uboFloor.gamma = 180.0f; uboFloor.sColor = glm::vec3(1.0f);
 		uboFloor.mvpMat[0] = Prj * View * World;
 		uboFloor.mMat[0] = World;
-		
+		uboFloor.nMat = glm::inverse(glm::transpose(World));
 		DSFloor.map(currentImage, &uboFloor, sizeof(uboFloor), 0);
 	
 	
