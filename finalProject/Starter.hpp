@@ -1,8 +1,5 @@
 // This has been adapted from the Vulkan tutorial
 
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
 #include <iostream>
 #include <stdexcept>
 #include <cstdlib>
@@ -30,6 +27,17 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#define TINYGLTF_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#define TINYGLTF_NOEXCEPTION
+#define JSON_NOEXCEPTION
+#define TINYGLTF_NO_INCLUDE_STB_IMAGE
+#include <tiny_gltf.h>
+
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+
+
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
 const std::vector<const char*> validationLayers = {
@@ -39,45 +47,6 @@ const std::vector<const char*> validationLayers = {
  std::vector<const char*> deviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
-
-struct Vertex {
-	glm::vec3 pos;
-	glm::vec3 norm;
-	glm::vec2 texCoord;
-	
-	static VkVertexInputBindingDescription getBindingDescription() {
-		VkVertexInputBindingDescription bindingDescription{};
-		bindingDescription.binding = 0;
-		bindingDescription.stride = sizeof(Vertex);
-		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-		
-		return bindingDescription;
-	}
-	
-	static std::array<VkVertexInputAttributeDescription, 3>
-						getAttributeDescriptions() {
-		std::array<VkVertexInputAttributeDescription, 3>
-						attributeDescriptions{};
-		
-		attributeDescriptions[0].binding = 0;
-		attributeDescriptions[0].location = 0;
-		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[0].offset = offsetof(Vertex, pos);
-						
-		attributeDescriptions[1].binding = 0;
-		attributeDescriptions[1].location = 1;
-		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[1].offset = offsetof(Vertex, norm);
-		
-		attributeDescriptions[2].binding = 0;
-		attributeDescriptions[2].location = 2;
-		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-		attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
-						
-		return attributeDescriptions;
-	}
-};
-
 
 struct QueueFamilyIndices {
 	std::optional<uint32_t> graphicsFamily;
@@ -168,20 +137,70 @@ void PrintVkError( VkResult result ) {
 
 class BaseProject;
 
-struct Model {
+struct VertexBindingDescriptorElement {
+	uint32_t binding;
+	uint32_t stride;
+	VkVertexInputRate inputRate;
+};
+
+enum VertexDescriptorElementUsage {POSITION, NORMAL, UV, COLOR, TANGENT, OTHER};
+
+struct VertexDescriptorElement {
+	uint32_t binding;
+	uint32_t location;
+	VkFormat format;
+	uint32_t offset;
+	uint32_t size;
+	VertexDescriptorElementUsage usage;
+};
+
+struct VertexComponent {
+	bool hasIt;
+	uint32_t offset;
+};
+
+struct VertexDescriptor {
 	BaseProject *BP;
-	std::vector<Vertex> vertices;
-	std::vector<uint32_t> indices;
+	
+	VertexComponent Position;
+	VertexComponent Normal;
+	VertexComponent UV;
+	VertexComponent Color;
+	VertexComponent Tangent;
+
+	std::vector<VertexBindingDescriptorElement> Bindings;
+	std::vector<VertexDescriptorElement> Layout;
+ 	
+ 	void init(BaseProject *bp, std::vector<VertexBindingDescriptorElement> B, std::vector<VertexDescriptorElement> E);
+	void cleanup();
+
+	std::vector<VkVertexInputBindingDescription> getBindingDescription();
+	std::vector<VkVertexInputAttributeDescription>
+						getAttributeDescriptions();
+};
+
+enum ModelType {OBJ, GLTF};
+
+template <class Vert>
+class Model {
+	BaseProject *BP;
+	
 	VkBuffer vertexBuffer;
 	VkDeviceMemory vertexBufferMemory;
 	VkBuffer indexBuffer;
 	VkDeviceMemory indexBufferMemory;
-	
-	void loadModel(std::string file);
+	VertexDescriptor *VD;
+
+	public:
+	std::vector<Vert> vertices{};
+	std::vector<uint32_t> indices{};
+	void loadModelOBJ(std::string file);
+	void loadModelGLTF(std::string file);
 	void createIndexBuffer();
 	void createVertexBuffer();
 
-	void init(BaseProject *bp, std::string file);
+	void init(BaseProject *bp, VertexDescriptor *VD, std::string file, ModelType MT);
+	void initMesh(BaseProject *bp, VertexDescriptor *VD);
 	void cleanup();
   	void bind(VkCommandBuffer commandBuffer);
 };
@@ -197,10 +216,18 @@ struct Texture {
 	static const int maxImgs = 6;
 	
 	void createTextureImage(const char *const files[], VkFormat Fmt);
-	void createTextureImageView();
-	void createTextureSampler();
+	void createTextureImageView(VkFormat Fmt);
+	void createTextureSampler(VkFilter magFilter,
+							 VkFilter minFilter,
+							 VkSamplerAddressMode addressModeU,
+							 VkSamplerAddressMode addressModeV,
+							 VkSamplerMipmapMode mipmapMode,
+							 VkBool32 anisotropyEnable,
+							 float maxAnisotropy,
+							 float maxLod
+							);
 
-	void init(BaseProject *bp, const char * file);
+	void init(BaseProject *bp, const char * file, VkFormat Fmt, bool initSampler);
 	void initCubic(BaseProject *bp, const char * files[6]);
 	void cleanup();
 };
@@ -233,8 +260,11 @@ struct Pipeline {
 	VkPolygonMode polyModel;
  	VkCullModeFlagBits CM;
  	bool transp;
+	
+	VertexDescriptor *VD;
   	
-  	void init(BaseProject *bp, const std::string& VertShader, const std::string& FragShader,
+  	void init(BaseProject *bp, VertexDescriptor *vd,
+			  const std::string& VertShader, const std::string& FragShader,
   			  std::vector<DescriptorSetLayout *> D);
   	void setAdvancedFeatures(VkCompareOp _compareOp, VkPolygonMode _polyModel,
  						VkCullModeFlagBits _CM, bool _transp);
@@ -268,14 +298,15 @@ struct DescriptorSet {
 	void init(BaseProject *bp, DescriptorSetLayout *L,
 		std::vector<DescriptorSetElement> E);
 	void cleanup();
-  	void bind(VkCommandBuffer commandBuffer, Pipeline &P, int currentImage);
+  	void bind(VkCommandBuffer commandBuffer, Pipeline &P, int setId, int currentImage);
   	void map(int currentImage, void *src, int size, int slot);
 };
 
 
 // MAIN ! 
 class BaseProject {
-	friend class Model;
+	friend class VertexDescriptor;
+	template <class Vert> friend class Model;
 	friend class Texture;
 	friend class Pipeline;
 	friend class DescriptorSetLayout;
@@ -1739,31 +1770,6 @@ std::cout << "Starting createInstance()\n"  << std::flush;
 			}
 		}
 	}
-	
-	// Public part of the base class
-	public:
-	// Debug commands
-	void printFloat(const char *Name, float v) {
-		std::cout << "float " << Name << " = " << v << ";\n";
-	}
-	void printVec3(const char *Name, glm::vec3 v) {
-		std::cout << "glm::vec3 " << Name << " = glm::vec3(" << v[0] << ", " << v[1] << ", " << v[2] << ");\n";
-	}
-	void printVec4(const char *Name, glm::vec4 v) {
-		std::cout << "glm::vec4 " << Name << " = glm::vec4(" << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << ");\n";
-	}
-	void printMat3(const char *Name, glm::mat3 v) {
-			std::cout << "glm::mat3 " << Name << " = glm::mat3(";
-			for(int i = 0; i<9; i++) {
-				std::cout << v[i/3][i%3] << ((i<8) ? ", " : ");\n");
-			}
-	}
-	void printMat4(const char *Name, glm::mat4 v) {
-			std::cout << "glm::mat4 " << Name << " = glm::mat4(";
-			for(int i = 0; i<16; i++) {
-				std::cout << v[i/4][i%4] << ((i<15) ? ", " : ");\n");
-			}
-	}
 		
 	void getSixAxis(float &deltaT, glm::vec3 &m, glm::vec3 &r, bool &fire) {
 		static auto startTime = std::chrono::high_resolution_clock::now();
@@ -1827,62 +1833,399 @@ std::cout << "Starting createInstance()\n"  << std::flush;
 			m.y = -1.0f;
 		}
 		
-		fire = glfwGetKey(window, GLFW_KEY_SPACE);
+		fire = glfwGetKey(window, GLFW_KEY_SPACE) | glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
 		handleGamePad(GLFW_JOYSTICK_1,m,r,fire);
 		handleGamePad(GLFW_JOYSTICK_2,m,r,fire);
 		handleGamePad(GLFW_JOYSTICK_3,m,r,fire);
 		handleGamePad(GLFW_JOYSTICK_4,m,r,fire);
+	}
+	
+	// Public part of the base class
+	public:
+	// Debug commands
+	void printFloat(const char *Name, float v) {
+		std::cout << "float " << Name << " = " << v << ";\n";
+	}
+	void printVec2(const char *Name, glm::vec2 v) {
+		std::cout << "glm::vec3 " << Name << " = glm::vec3(" << v[0] << ", " << v[1] << ");\n";
+	}
+	void printVec3(const char *Name, glm::vec3 v) {
+		std::cout << "glm::vec3 " << Name << " = glm::vec3(" << v[0] << ", " << v[1] << ", " << v[2] << ");\n";
+	}
+	void printVec4(const char *Name, glm::vec4 v) {
+		std::cout << "glm::vec4 " << Name << " = glm::vec4(" << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << ");\n";
+	}
+	void printMat3(const char *Name, glm::mat3 v) {
+			std::cout << "glm::mat3 " << Name << " = glm::mat3(";
+			for(int i = 0; i<9; i++) {
+				std::cout << v[i/3][i%3] << ((i<8) ? ", " : ");\n");
+			}
+	}
+	void printMat4(const char *Name, glm::mat4 v) {
+			std::cout << "glm::mat4 " << Name << " = glm::mat4(";
+			for(int i = 0; i<16; i++) {
+				std::cout << v[i/4][i%4] << ((i<15) ? ", " : ");\n");
+			}
 	}
 };
 
 
 
 
+// Helper classes
+
+
+void VertexDescriptor::init(BaseProject *bp, std::vector<VertexBindingDescriptorElement> B, std::vector<VertexDescriptorElement> E) {
+	BP = bp;
+	Bindings = B;
+	Layout = E;
+	
+	Position.hasIt = false; Position.offset = 0;
+	Normal.hasIt = false; Normal.offset = 0;
+	UV.hasIt = false; UV.offset = 0;
+	Color.hasIt = false; Color.offset = 0;
+	Tangent.hasIt = false; Tangent.offset = 0;
+	
+	if(B.size() == 1) {	// for now, read models only with every vertex information in a single binding
+		for(int i = 0; i < E.size(); i++) {
+			switch(E[i].usage) {
+			  case VertexDescriptorElementUsage::POSITION:
+			    if(E[i].format == VK_FORMAT_R32G32B32_SFLOAT) {
+				  if(E[i].size == sizeof(glm::vec3)) {
+					Position.hasIt = true;
+					Position.offset = E[i].offset;
+				  } else {
+					std::cout << "Vertex Position - wrong size\n";
+				  }
+				} else {
+				  std::cout << "Vertex Position - wrong format\n";
+				}
+			    break;
+			  case VertexDescriptorElementUsage::NORMAL:
+			    if(E[i].format == VK_FORMAT_R32G32B32_SFLOAT) {
+				  if(E[i].size == sizeof(glm::vec3)) {
+					Normal.hasIt = true;
+					Normal.offset = E[i].offset;
+				  } else {
+					std::cout << "Vertex Normal - wrong size\n";
+				  }
+				} else {
+				  std::cout << "Vertex Normal - wrong format\n";
+				}
+			    break;
+			  case VertexDescriptorElementUsage::UV:
+			    if(E[i].format == VK_FORMAT_R32G32_SFLOAT) {
+				  if(E[i].size == sizeof(glm::vec2)) {
+					UV.hasIt = true;
+					UV.offset = E[i].offset;
+				  } else {
+					std::cout << "Vertex UV - wrong size\n";
+				  }
+				} else {
+				  std::cout << "Vertex UV - wrong format\n";
+				}
+			    break;
+			  case VertexDescriptorElementUsage::COLOR:
+			    if(E[i].format == VK_FORMAT_R32G32B32_SFLOAT) {
+				  if(E[i].size == sizeof(glm::vec3)) {
+					Color.hasIt = true;
+					Color.offset = E[i].offset;
+				  } else {
+					std::cout << "Vertex Color - wrong size\n";
+				  }
+				} else {
+				  std::cout << "Vertex Color - wrong format\n";
+				}
+			    break;
+			  case VertexDescriptorElementUsage::TANGENT:
+			    if(E[i].format == VK_FORMAT_R32G32B32A32_SFLOAT) {
+				  if(E[i].size == sizeof(glm::vec4)) {
+					Tangent.hasIt = true;
+					Tangent.offset = E[i].offset;
+				  } else {
+					std::cout << "Vertex Tangent - wrong size\n";
+				  }
+				} else {
+				  std::cout << "Vertex Tangent - wrong format\n";
+				}
+			    break;
+			  default:
+			    break;
+			}
+		}
+	} else {
+		throw std::runtime_error("Vertex format with more than one binding is not supported yet\n");
+	}
+}
+
+void VertexDescriptor::cleanup() {
+}
+
+std::vector<VkVertexInputBindingDescription> VertexDescriptor::getBindingDescription() {
+	std::vector<VkVertexInputBindingDescription>bindingDescription{};
+	bindingDescription.resize(Bindings.size());
+	for(int i = 0; i < Bindings.size(); i++) {
+		bindingDescription[i].binding = Bindings[i].binding;
+		bindingDescription[i].stride = Bindings[i].stride;
+		bindingDescription[i].inputRate = Bindings[i].inputRate;
+	}
+	return bindingDescription;
+}
+	
+std::vector<VkVertexInputAttributeDescription> VertexDescriptor::getAttributeDescriptions() {
+	std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};	
+	attributeDescriptions.resize(Layout.size());
+	for(int i = 0; i < Layout.size(); i++) {
+		attributeDescriptions[i].binding = Layout[i].binding;
+		attributeDescriptions[i].location = Layout[i].location;
+		attributeDescriptions[i].format = Layout[i].format;
+		attributeDescriptions[i].offset = Layout[i].offset;
+	}
+					
+	return attributeDescriptions;
+}
 
 
 
-
-void Model::loadModel(std::string file) {
+template <class Vert>
+void Model<Vert>::loadModelOBJ(std::string file) {
 	tinyobj::attrib_t attrib;
 	std::vector<tinyobj::shape_t> shapes;
 	std::vector<tinyobj::material_t> materials;
 	std::string warn, err;
 	
+	std::cout << "Loading : " << file << "[OBJ]\n";	
 	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err,
 						  file.c_str())) {
 		throw std::runtime_error(warn + err);
 	}
 	
+	std::cout << "Building\n";	
+//	std::cout << "Position " << VD->Position.hasIt << "," << VD->Position.offset << "\n";	
+//	std::cout << "UV " << VD->UV.hasIt << "," << VD->UV.offset << "\n";	
+//	std::cout << "Normal " << VD->Normal.hasIt << "," << VD->Normal.offset << "\n";	
 	for (const auto& shape : shapes) {
 		for (const auto& index : shape.mesh.indices) {
-			Vertex vertex{};
-			
-			vertex.pos = {
+			Vert vertex{};
+			glm::vec3 pos = {
 				attrib.vertices[3 * index.vertex_index + 0],
 				attrib.vertices[3 * index.vertex_index + 1],
 				attrib.vertices[3 * index.vertex_index + 2]
 			};
+			if(VD->Position.hasIt) {
+				glm::vec3 *o = (glm::vec3 *)((char*)(&vertex) + VD->Position.offset);
+				*o = pos;
+			}
 			
-			vertex.texCoord = {
+			glm::vec3 color = {
+				attrib.colors[3 * index.vertex_index + 0],
+				attrib.colors[3 * index.vertex_index + 1],
+				attrib.colors[3 * index.vertex_index + 2]
+			};
+			if(VD->Color.hasIt) {
+				glm::vec3 *o = (glm::vec3 *)((char*)(&vertex) + VD->Color.offset);
+				*o = color;
+			}
+			
+			glm::vec2 texCoord = {
 				attrib.texcoords[2 * index.texcoord_index + 0],
 				1 - attrib.texcoords[2 * index.texcoord_index + 1] 
 			};
+			if(VD->UV.hasIt) {
+				glm::vec2 *o = (glm::vec2 *)((char*)(&vertex) + VD->UV.offset);
+				*o = texCoord;
+			}
 
-			vertex.norm = {
+			glm::vec3 norm = {
 				attrib.normals[3 * index.normal_index + 0],
 				attrib.normals[3 * index.normal_index + 1],
 				attrib.normals[3 * index.normal_index + 2]
 			};
+			if(VD->Normal.hasIt) {
+				glm::vec3 *o = (glm::vec3 *)((char*)(&vertex) + VD->Normal.offset);
+				*o = norm;
+			}
 			
 			vertices.push_back(vertex);
 			indices.push_back(vertices.size()-1);
 		}
 	}
-	
+	std::cout << "[OBJ] Vertices: "<< vertices.size() << "\n";
+	std::cout << "Indices: "<< indices.size() << "\n";
 	
 }
 
-void Model::createVertexBuffer() {
+template <class Vert>
+void Model<Vert>::loadModelGLTF(std::string file) {
+	tinygltf::Model model;
+	tinygltf::TinyGLTF loader;
+	std::string warn, err;
+	
+	std::cout << "Loading : " << file << "[GLTF]\n";	
+	if (!loader.LoadASCIIFromFile(&model, &warn, &err, 
+					file.c_str())) {
+		throw std::runtime_error(warn + err);
+	}
+	
+	for (const auto& mesh :  model.meshes) {
+		std::cout << "Primitives: " << mesh.primitives.size() << "\n";
+		for (const auto& primitive :  mesh.primitives) {
+			if (primitive.indices < 0) {
+				continue;
+			}
+
+			const float *bufferPos = nullptr;
+			const float *bufferNormals = nullptr;
+			const float *bufferTangents = nullptr;
+			const float *bufferTexCoords = nullptr;
+			
+			bool meshHasPos = false;
+			bool meshHasNorm = false;
+			bool meshHasTan = false;
+			bool meshHasUV = false;
+			
+			int cntPos = 0;
+			int cntNorm = 0;
+			int cntTan = 0;
+			int cntUV = 0;
+			int cntTot = 0;
+			
+			auto pIt = primitive.attributes.find("POSITION");
+			if(pIt != primitive.attributes.end()) {
+				const tinygltf::Accessor &posAccessor = model.accessors[pIt->second];
+				const tinygltf::BufferView &posView = model.bufferViews[posAccessor.bufferView];
+				bufferPos = reinterpret_cast<const float *>(&(model.buffers[posView.buffer].data[posAccessor.byteOffset + posView.byteOffset]));
+				meshHasPos = true;
+				cntPos = posAccessor.count;
+				if(cntPos > cntTot) cntTot = cntPos;
+			} else {
+				if(VD->Position.hasIt) {
+					std::cout << "Warning: vertex layout has position, but file hasn't\n";
+				}
+			}
+			
+			auto nIt = primitive.attributes.find("NORMAL");
+			if(nIt != primitive.attributes.end()) {
+				const tinygltf::Accessor &normAccessor = model.accessors[nIt->second];
+				const tinygltf::BufferView &normView = model.bufferViews[normAccessor.bufferView];
+				bufferNormals = reinterpret_cast<const float *>(&(model.buffers[normView.buffer].data[normAccessor.byteOffset + normView.byteOffset]));
+				meshHasNorm = true;
+				cntNorm = normAccessor.count;
+				if(cntNorm > cntTot) cntTot = cntNorm;
+			} else {
+				if(VD->Normal.hasIt) {
+					std::cout << "Warning: vertex layout has normal, but file hasn't\n";
+				}
+			}
+
+			auto tIt = primitive.attributes.find("TANGENT");
+			if(tIt != primitive.attributes.end()) {
+				const tinygltf::Accessor &tanAccessor = model.accessors[tIt->second];
+				const tinygltf::BufferView &tanView = model.bufferViews[tanAccessor.bufferView];
+				bufferTangents = reinterpret_cast<const float *>(&(model.buffers[tanView.buffer].data[tanAccessor.byteOffset + tanView.byteOffset]));
+				meshHasTan = true;
+				cntTan = tanAccessor.count;
+				if(cntTan > cntTot) cntTot = cntTan;
+			} else {
+				if(VD->Tangent.hasIt) {
+					std::cout << "Warning: vertex layout has tangent, but file hasn't\n";
+				}
+			}
+
+			auto uIt = primitive.attributes.find("TEXCOORD_0");
+			if(uIt != primitive.attributes.end()) {
+				const tinygltf::Accessor &uvAccessor = model.accessors[uIt->second];
+				const tinygltf::BufferView &uvView = model.bufferViews[uvAccessor.bufferView];
+				bufferTexCoords = reinterpret_cast<const float *>(&(model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
+				meshHasUV = true;
+				cntUV = uvAccessor.count;
+				if(cntUV > cntTot) cntTot = cntUV;
+			} else {
+				if(VD->UV.hasIt) {
+					std::cout << "Warning: vertex layout has UV, but file hasn't\n";
+				}
+			}
+			
+			for(int i = 0; i < cntTot; i++) {
+				Vert vertex{};
+				
+				if((i < cntPos) && meshHasPos && VD->Position.hasIt) {
+					glm::vec3 pos = {
+						bufferPos[3 * i + 0],
+						bufferPos[3 * i + 1],
+						bufferPos[3 * i + 2]
+					};
+					glm::vec3 *o = (glm::vec3 *)((char*)(&vertex) + VD->Position.offset);
+					*o = pos;
+				}
+	
+				if((i < cntNorm) && meshHasNorm && VD->Normal.hasIt) {
+					glm::vec3 normal = {
+						bufferNormals[3 * i + 0],
+						bufferNormals[3 * i + 1],
+						bufferNormals[3 * i + 2]
+					};
+					glm::vec3 *o = (glm::vec3 *)((char*)(&vertex) + VD->Normal.offset);
+					*o = normal;
+				}
+
+				if((i < cntTan) && meshHasTan && VD->Tangent.hasIt) {
+					glm::vec4 tangent = {
+						bufferTangents[4 * i + 0],
+						bufferTangents[4 * i + 1],
+						bufferTangents[4 * i + 2],
+						bufferTangents[4 * i + 3]
+					};
+					glm::vec4 *o = (glm::vec4 *)((char*)(&vertex) + VD->Tangent.offset);
+					*o = tangent;
+				}
+				
+				if((i < cntUV) && meshHasUV && VD->UV.hasIt) {
+					glm::vec2 texCoord = {
+						bufferTexCoords[2 * i + 0],
+						bufferTexCoords[2 * i + 1] 
+					};
+					glm::vec2 *o = (glm::vec2 *)((char*)(&vertex) + VD->UV.offset);
+					*o = texCoord;
+				}
+
+				vertices.push_back(vertex);					
+			} 
+
+			const tinygltf::Accessor &accessor = model.accessors[primitive.indices];
+			const tinygltf::BufferView &bufferView = model.bufferViews[accessor.bufferView];
+			const tinygltf::Buffer &buffer = model.buffers[bufferView.buffer];
+			
+			switch(accessor.componentType) {
+				case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT:
+					{
+						const uint16_t *bufferIndex = reinterpret_cast<const uint16_t *>(&(buffer.data[accessor.byteOffset + bufferView.byteOffset]));
+						for(int i = 0; i < accessor.count; i++) {
+							indices.push_back(bufferIndex[i]);
+						}
+					}
+					break;
+				case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT:
+					{
+						const uint32_t *bufferIndex = reinterpret_cast<const uint32_t *>(&(buffer.data[accessor.byteOffset + bufferView.byteOffset]));
+						for(int i = 0; i < accessor.count; i++) {
+							indices.push_back(bufferIndex[i]);
+						}
+					}
+					break;
+				default:
+					std::cerr << "Index component type " << accessor.componentType << " not supported!" << std::endl;
+					throw std::runtime_error("Error loading GLTF component");			
+			}
+		}
+	}
+
+	std::cout << "[GLTF] Vertices: " << vertices.size()
+			  << "\nIndices: " << indices.size() << "\n";
+}
+
+template <class Vert>
+void Model<Vert>::createVertexBuffer() {
 	VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
 	BP->createBuffer(bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
@@ -1896,7 +2239,8 @@ void Model::createVertexBuffer() {
 	vkUnmapMemory(BP->device, vertexBufferMemory);			
 }
 
-void Model::createIndexBuffer() {
+template <class Vert>
+void Model<Vert>::createIndexBuffer() {
 	VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 
 	BP->createBuffer(bufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
@@ -1910,21 +2254,39 @@ void Model::createIndexBuffer() {
 	vkUnmapMemory(BP->device, indexBufferMemory);
 }
 
-void Model::init(BaseProject *bp, std::string file) {
+template <class Vert>
+void Model<Vert>::initMesh(BaseProject *bp, VertexDescriptor *vd) {
 	BP = bp;
-	loadModel(file);
+	VD = vd;
+	std::cout << "[Manual] Vertices: " << vertices.size()
+			  << "\nIndices: " << indices.size() << "\n";
 	createVertexBuffer();
 	createIndexBuffer();
 }
 
-void Model::cleanup() {
+template <class Vert>
+void Model<Vert>::init(BaseProject *bp, VertexDescriptor *vd, std::string file, ModelType MT) {
+	BP = bp;
+	VD = vd;
+	if(MT == OBJ) {
+		loadModelOBJ(file);
+	} else if(MT == GLTF) {
+		loadModelGLTF(file);
+	}
+	createVertexBuffer();
+	createIndexBuffer();
+}
+
+template <class Vert>
+void Model<Vert>::cleanup() {
    	vkDestroyBuffer(BP->device, indexBuffer, nullptr);
    	vkFreeMemory(BP->device, indexBufferMemory, nullptr);
 	vkDestroyBuffer(BP->device, vertexBuffer, nullptr);
    	vkFreeMemory(BP->device, vertexBufferMemory, nullptr);
 }
 
-void Model::bind(VkCommandBuffer commandBuffer) {
+template <class Vert>
+void Model<Vert>::bind(VkCommandBuffer commandBuffer) {
 	VkBuffer vertexBuffers[] = {vertexBuffer};
 	// property .vertexBuffer of models, contains the VkBuffer handle to its vertex buffer
 	VkDeviceSize offsets[] = {0};
@@ -2007,33 +2369,42 @@ void Texture::createTextureImage(const char *const files[], VkFormat Fmt = VK_FO
 	vkFreeMemory(BP->device, stagingBufferMemory, nullptr);
 }
 
-void Texture::createTextureImageView() {
+void Texture::createTextureImageView(VkFormat Fmt = VK_FORMAT_R8G8B8A8_SRGB) {
 	textureImageView = BP->createImageView(textureImage,
-									   VK_FORMAT_R8G8B8A8_SRGB,
+									   Fmt,
 									   VK_IMAGE_ASPECT_COLOR_BIT,
 									   mipLevels,
 									   imgs == 6 ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D,
 									   imgs);
 }
 	
-void Texture::createTextureSampler() {
+void Texture::createTextureSampler(
+							 VkFilter magFilter = VK_FILTER_LINEAR,
+							 VkFilter minFilter = VK_FILTER_LINEAR,
+							 VkSamplerAddressMode addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+							 VkSamplerAddressMode addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+							 VkSamplerMipmapMode mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+							 VkBool32 anisotropyEnable = VK_TRUE,
+							 float maxAnisotropy = 16,
+							 float maxLod = -1
+							) {
 	VkSamplerCreateInfo samplerInfo{};
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-	samplerInfo.magFilter = VK_FILTER_LINEAR;
-	samplerInfo.minFilter = VK_FILTER_LINEAR;
-	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerInfo.magFilter = magFilter;
+	samplerInfo.minFilter = minFilter;
+	samplerInfo.addressModeU = addressModeU;
+	samplerInfo.addressModeV = addressModeV;
 	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	samplerInfo.anisotropyEnable = VK_TRUE;
-	samplerInfo.maxAnisotropy = 16;
+	samplerInfo.anisotropyEnable = anisotropyEnable;
+	samplerInfo.maxAnisotropy = maxAnisotropy;
 	samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
 	samplerInfo.unnormalizedCoordinates = VK_FALSE;
 	samplerInfo.compareEnable = VK_FALSE;
 	samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+	samplerInfo.mipmapMode = mipmapMode;
 	samplerInfo.mipLodBias = 0.0f;
 	samplerInfo.minLod = 0.0f;
-	samplerInfo.maxLod = static_cast<float>(mipLevels);
+	samplerInfo.maxLod = ((maxLod == -1) ? static_cast<float>(mipLevels) : maxLod);
 	
 	VkResult result = vkCreateSampler(BP->device, &samplerInfo, nullptr,
 									  &textureSampler);
@@ -2045,13 +2416,15 @@ void Texture::createTextureSampler() {
 	
 
 
-void Texture::init(BaseProject *bp, const char *  file) {
+void Texture::init(BaseProject *bp, const char *  file, VkFormat Fmt = VK_FORMAT_R8G8B8A8_SRGB, bool initSampler = true) {
 	const char *files[1] = {file};
 	BP = bp;
 	imgs = 1;
-	createTextureImage(files);
-	createTextureImageView();
-	createTextureSampler();
+	createTextureImage(files, Fmt);
+	createTextureImageView(Fmt);
+	if(initSampler) {
+		createTextureSampler();
+	}
 }
 
 
@@ -2075,9 +2448,11 @@ void Texture::cleanup() {
 
 
 
-void Pipeline::init(BaseProject *bp, const std::string& VertShader, const std::string& FragShader,
+void Pipeline::init(BaseProject *bp, VertexDescriptor *vd,
+					const std::string& VertShader, const std::string& FragShader,
 					std::vector<DescriptorSetLayout *> d) {
 	BP = bp;
+	VD = vd;
 	
 	auto vertShaderCode = readFile(VertShader);
 	auto fragShaderCode = readFile(FragShader);
@@ -2129,13 +2504,13 @@ void Pipeline::create() {
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 	vertexInputInfo.sType =
 			VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	auto bindingDescription = Vertex::getBindingDescription();
-	auto attributeDescriptions = Vertex::getAttributeDescriptions();
+	auto bindingDescription = VD->getBindingDescription();
+	auto attributeDescriptions = VD->getAttributeDescriptions();
 			
-	vertexInputInfo.vertexBindingDescriptionCount = 1;
+	vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescription.size());
 	vertexInputInfo.vertexAttributeDescriptionCount =
 			static_cast<uint32_t>(attributeDescriptions.size());
-	vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+	vertexInputInfo.pVertexBindingDescriptions = bindingDescription.data();
 	vertexInputInfo.pVertexAttributeDescriptions =
 			attributeDescriptions.data();		
 
@@ -2456,11 +2831,11 @@ void DescriptorSet::cleanup() {
 	}
 }
 
-void DescriptorSet::bind(VkCommandBuffer commandBuffer, Pipeline &P,
+void DescriptorSet::bind(VkCommandBuffer commandBuffer, Pipeline &P, int setId,
 						 int currentImage) {
 	vkCmdBindDescriptorSets(commandBuffer,
 					VK_PIPELINE_BIND_POINT_GRAPHICS,
-					P.pipelineLayout, 0, 1, &descriptorSets[currentImage],
+					P.pipelineLayout, setId, 1, &descriptorSets[currentImage],
 					0, nullptr);
 }
 
