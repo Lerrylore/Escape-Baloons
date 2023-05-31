@@ -410,10 +410,10 @@ class SlotMachine : public BaseProject {
 		
 
 
-		gubo.DlightDir = glm::normalize(camPos - newPos);
+		gubo.DlightDir = glm::normalize((Pos + glm::vec3(0,5, 0)) - Pos);
 		gubo.DlightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 		gubo.eyePos = camPos;
-		gubo.lightPos = Pos + glm::vec3(0,5,-0.6f);
+		gubo.lightPos = Pos + glm::vec3(0,5,0.0f);
 
 		// Writes value to the GPU
 		DSGubo.map(currentImage, &gubo, sizeof(gubo), 0);
