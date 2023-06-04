@@ -32,6 +32,8 @@ bld/
 [Oo]ut/
 [Ll]og/
 [Ll]ogs/
+DerivedData/
+build/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
@@ -367,3 +369,17 @@ FodyWeavers.xsd
 /finalProject/A15.sln
 /finalProject/A15.vcxproj.filters
 /finalProject/A15.vcxproj
+finalProject.xcodeproj/project.pbxproj
+finalProject.xcodeproj/project.xcworkspace/xcuserdata/thepantalion.xcuserdatad/UserInterfaceState.xcuserstate
+finalProject.xcodeproj/project.pbxproj
+finalProject.xcodeproj/project.xcworkspace/xcuserdata/thepantalion.xcuserdatad/UserInterfaceState.xcuserstate
+finalProjectWorkspace.xcworkspace/contents.xcworkspacedata
+finalProjectWorkspace.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+finalProjectWorkspace.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+finalProjectWorkspace.xcworkspace/xcuserdata/thepantalion.xcuserdatad/UserInterfaceState.xcuserstate
+finalProjectWorkspace.xcworkspace/xcuserdata/thepantalion.xcuserdatad/WorkspaceSettings.xcsettings
+.vscode/c_cpp_properties.json
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/xcodebuild-tools.json
+finalProject.xcodeproj/project.xcworkspace/xcuserdata/thepantalion.xcuserdatad/UserInterfaceState.xcuserstate

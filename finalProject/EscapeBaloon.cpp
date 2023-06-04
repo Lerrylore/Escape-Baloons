@@ -1,6 +1,7 @@
 // This has been adapted from the Vulkan tutorial
 
 #include "Starter.hpp"
+#include "model.cpp"
 
 
 
@@ -75,13 +76,13 @@ class SlotMachine : public BaseProject {
 
 	// Models, textures and Descriptors (values assigned to the uniforms)
 	// Please note that Model objects depends on the corresponding vertex structure
-	Model<VertexMesh> MCharacter, MFloor;
+	Model<VertexMesh> MCharacter, MFloor, MBall;
 	Model<VertexOverlay> MKey, MSplash;
-	DescriptorSet DSGubo, DSCharacter, DSFloor;
-	Texture TCharacter, TFloor;
+	DescriptorSet DSGubo, DSCharacter, DSCharacter2, DSBall, DSFloor;
+	Texture TCharacter, TFloor, TBall;
 	
 	// C++ storage for uniform variables
-	MeshUniformBlock uboCharacter, uboFloor;
+	MeshUniformBlock uboCharacter, uboFloor, uboSphere;
 	GlobalUniformBlock gubo;
 	OverlayUniformBlock uboKey, uboSplash;
 
@@ -236,6 +237,11 @@ class SlotMachine : public BaseProject {
 					{0, UNIFORM, sizeof(MeshUniformBlock), nullptr},
 					{1, TEXTURE, 0, &TCharacter}
 				});
+
+		DSCharacter2.init(this, &DSLMesh, {
+			{0, UNIFORM, sizeof(MeshUniformBlock), nullptr},
+			{1, TEXTURE, 0, &TCharacter}
+		});
 		DSFloor.init(this, &DSLMesh, {
 					{0, UNIFORM, sizeof(MeshUniformBlock), nullptr},
 					{1, TEXTURE, 0, &TFloor}
@@ -256,6 +262,7 @@ class SlotMachine : public BaseProject {
 
 		// Cleanup datasets
 		DSCharacter.cleanup();
+		DSCharacter2.cleanup();
 		DSFloor.cleanup();
 
 		DSGubo.cleanup();
@@ -319,10 +326,12 @@ class SlotMachine : public BaseProject {
 		// of the current image in the swap chain, passed in its last parameter
 					
 		// record the drawing command in the command buffer
-		vkCmdDrawIndexed(commandBuffer,
-				static_cast<uint32_t>(MCharacter.indices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MCharacter.indices.size()), 1, 0, 0, 0);
 		// the second parameter is the number of indexes to be drawn. For a Model object,
 		// this can be retrieved with the .indices.size() method.
+
+		DSCharacter2.bind(commandBuffer, PMesh, 1, currentImage);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MCharacter.indices.size()), 1, 0, 0, 0);
 
 		MFloor.bind(commandBuffer);
 		DSFloor.bind(commandBuffer, PMesh, 1, currentImage);
@@ -356,12 +365,21 @@ class SlotMachine : public BaseProject {
 		//          SPACE on the keyboard, A or B button on the Gamepad, Right mouse button
 
 		// To debounce the pressing of the fire button, and start the event when the key is released
-		const glm::vec3 StartingPosition = glm::vec3(0.0, 0.0, 0.0);
+		const glm::vec3 StartingPosition = glm::vec3(3.0, 0.0, -2.0);
+		static Ball ball = Ball(StartingPosition, deltaT);
+
 		// Parameters: wheels and handle speed and range
 		static glm::vec3 Pos = StartingPosition;
 		static glm::vec3 newPos;
 		static glm::vec3 oldPos = Pos;
 
+		/*
+		static glm::vec3 objPos = glm::vec3(-5.0f, 0.0f, 0.0f);
+		static glm::vec3 direction = glm::normalize(Pos - objPos);
+		glm::vec3 right = glm::cross(direction, glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::vec3 newUp = glm::cross(right, direction);
+		*/
+	
 		glm::mat4 WorldMatrix;
 
 		static float yaw = 0.0f;
@@ -397,17 +415,14 @@ class SlotMachine : public BaseProject {
 		//if (pitch <= minPitch) pitch = minPitch;
 		//if (pitch >= maxPitch) pitch = maxPitch;
 		//roll += ROT_SPEED * r.z * deltaT;
-		glm::vec3 ux = glm::vec3(glm::rotate(glm::mat4(1), yaw,
-		glm::vec3(0, 1, 0)) * glm::vec4(1, 0, 0, 1));
+		glm::vec3 ux = glm::vec3(glm::rotate(glm::mat4(1), yaw, glm::vec3(0, 1, 0)) * glm::vec4(1, 0, 0, 1));
 		glm::vec3 uy = glm::vec3(0,1,0);
-		glm::vec3 uz = glm::vec3(glm::rotate(glm::mat4(1), yaw,
-			glm::vec3(0, 1, 0)) * glm::vec4(0, 0, -1, 1));
+		glm::vec3 uz = glm::vec3(glm::rotate(glm::mat4(1), yaw, glm::vec3(0, 1, 0)) * glm::vec4(0, 0, -1, 1));
 
 		Pos += ux * MOVE_SPEED * m.x * deltaT;
-
 		Pos += uy * MOVE_SPEED * m.y * deltaT;
-
 		Pos += uz * MOVE_SPEED * m.z * deltaT;
+
 		//constraints check
 		if (Pos.y <= 0) Pos.y = 0;
 		if (Pos.y > 0 && m.y == 0) Pos.y -= 0.01;
@@ -422,7 +437,7 @@ class SlotMachine : public BaseProject {
 
 		WorldMatrix = glm::translate(glm::mat4(1.0), Pos) * glm::rotate(glm::mat4(1.0), yaw2, glm::vec3(0,1,0)) * glm::rotate(glm::mat4(1.0), roll, glm::vec3(0,0,1))* glm::scale(glm::mat4(1.0), glm::vec3(1,1,1));
 		
-		glm::mat4 WorldMatrixNew= glm::translate(glm::mat4(1.0), newPos) * glm::rotate(glm::mat4(1.0), yaw, glm::vec3(0,1,0))* glm::rotate(glm::mat4(1.0), pitch, glm::vec3(1,0,0)) * glm::scale(glm::mat4(1.0), glm::vec3(1,1,1));
+		glm::mat4 WorldMatrixNew = glm::translate(glm::mat4(1.0), newPos) * glm::rotate(glm::mat4(1.0), yaw, glm::vec3(0,1,0))* glm::rotate(glm::mat4(1.0), pitch, glm::vec3(1,0,0)) * glm::scale(glm::mat4(1.0), glm::vec3(1,1,1));
 		
 		glm::mat4 Prj = glm::perspective(FOVy, Ar, nearPlane, farPlane);
 		Prj[1][1] *= -1;
@@ -430,9 +445,6 @@ class SlotMachine : public BaseProject {
 		glm::vec3 camTarget = glm::vec3( WorldMatrixNew * glm::vec4(0, 0, 0, 1)) + glm::vec3(0, CamH, 0);
 		glm::vec3 camPos    = WorldMatrixNew * glm::vec4(0, CamH + CamD * sin(glm::radians(pitch)), CamD * cos(glm::radians(pitch)), 1);
 		glm::mat4 View = glm::lookAt(camPos, camTarget, glm::vec3(0,1,0));
-
-		
-
 
 		gubo.DlightDir = glm::normalize((Pos + glm::vec3(0,5, 0)) - Pos);
 		gubo.DlightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -454,6 +466,22 @@ class SlotMachine : public BaseProject {
 		uboCharacter.mMat[0] = WorldMatrix;
 		uboCharacter.nMat = glm::inverse(glm::transpose(WorldMatrix));
 		DSCharacter.map(currentImage, &uboCharacter, sizeof(uboCharacter), 0);
+
+		//code to move objects around
+		/*
+		glm::mat4 objWorldMatrix = glm::mat4(
+    		glm::vec4(right, 0.0f),
+    		glm::vec4(newUp, 0.0f),
+    		glm::vec4(direction, 0.0f),
+    		glm::vec4(objPos, 1.0f)
+		);
+		*/
+
+		glm::mat4 objectWorldMatrix = ball.updatePosition(deltaT);
+
+		uboCharacter.mvpMat[0] = Prj * View * objectWorldMatrix;
+		uboCharacter.mMat[0] = objectWorldMatrix;
+		DSCharacter2.map(currentImage, &uboCharacter, sizeof(uboCharacter), 0);
 
 		glm::mat4 World = glm::mat4(1);
 		World = World * glm::translate(glm::mat4(1), glm::vec3(-20,0,-20))*glm::scale(glm::mat4(1), glm::vec3(50, 1, 50));
