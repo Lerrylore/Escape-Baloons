@@ -2,9 +2,12 @@
 
 #include "Starter.hpp"
 #include "model.cpp"
+#include <list>
+#include <cmath>
 
-
-
+#define WAVE_SIZE 20
+#define MIN_AREA -5.0f
+#define MAX_AREA 5.0f
 
 // The uniform buffer objects data structures
 // Remember to use the correct alignas(...) value
@@ -19,9 +22,9 @@ struct MeshUniformBlock {
 	alignas(4) float amb;
 	alignas(4) float gamma;
 	alignas(16) glm::vec3 sColor;
-	alignas(16) glm::mat4 mvpMat[20];
-	alignas(16) glm::mat4 mMat[20];
-	alignas(16) glm::mat4 nMat;
+	alignas(16) glm::mat4 mvpMat[WAVE_SIZE];
+	alignas(16) glm::mat4 mMat[WAVE_SIZE];
+	alignas(16) glm::mat4 nMat[WAVE_SIZE];
 };
 
 struct OverlayUniformBlock {
@@ -331,7 +334,7 @@ class SlotMachine : public BaseProject {
 		// this can be retrieved with the .indices.size() method.
 
 		DSCharacter2.bind(commandBuffer, PMesh, 1, currentImage);
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MCharacter.indices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MCharacter.indices.size()), 20, 0, 0, 0);
 
 		MFloor.bind(commandBuffer);
 		DSFloor.bind(commandBuffer, PMesh, 1, currentImage);
@@ -364,22 +367,33 @@ class SlotMachine : public BaseProject {
 		// If fills the last boolean variable with true if fire has been pressed:
 		//          SPACE on the keyboard, A or B button on the Gamepad, Right mouse button
 
+		static auto start = std::chrono::high_resolution_clock::now();
+		auto currentTime = std::chrono::high_resolution_clock::now();
+		gameTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - start).count(); /*TIMER IN SECONDI*/
+
+		static glm::vec3 minArea = glm::vec3(-5.0f, 0.0f, -5.0f);
+		static glm::vec3 maxArea = glm::vec3(5.0f, 0.0f, 5.0f);
+
 		// To debounce the pressing of the fire button, and start the event when the key is released
 		const glm::vec3 StartingPosition = glm::vec3(3.0, 0.0, -2.0);
-		static Ball ball = Ball(StartingPosition, deltaT);
+		static Wave wave = Wave(10, 1.0f, minArea, maxArea);
+		//static Ball ball = Ball(StartingPosition, deltaT);
 
 		// Parameters: wheels and handle speed and range
 		static glm::vec3 Pos = StartingPosition;
 		static glm::vec3 newPos;
 		static glm::vec3 oldPos = Pos;
 
-		/*
-		static glm::vec3 objPos = glm::vec3(-5.0f, 0.0f, 0.0f);
-		static glm::vec3 direction = glm::normalize(Pos - objPos);
-		glm::vec3 right = glm::cross(direction, glm::vec3(0.0f, 1.0f, 0.0f));
-		glm::vec3 newUp = glm::cross(right, direction);
-		*/
-	
+		float tolerance = 0.05f; // Tolerance value for comparison
+
+		if (std::fabs(std::fmod(gameTime, 3.0f)) < tolerance) {
+			std::cout << "new ball" << std::endl;
+			glm::vec3 positionToTrack = Pos;
+			wave.addBall(positionToTrack);
+		}
+
+		wave.removeOutOfBoundBalls();
+		
 		glm::mat4 WorldMatrix;
 
 		static float yaw = 0.0f;
@@ -387,11 +401,6 @@ class SlotMachine : public BaseProject {
 		static float roll = 0.0f;
 		static float yaw2 = 0.0f;
 		// static variables for current angles
-		static auto start = std::chrono::high_resolution_clock::now();
-		auto currentTime = std::chrono::high_resolution_clock::now();
-		gameTime = std::chrono::duration<float, std::chrono::seconds::period> //TIMER IN SECONDI
-					(currentTime - start).count();
-		
 		
 		// Parameters
 		// Camera FOV-y, Near Plane and Far Plane
@@ -464,37 +473,27 @@ class SlotMachine : public BaseProject {
 		uboCharacter.amb = 1.0f; uboCharacter.gamma = 180.0f; uboCharacter.sColor = glm::vec3(1.0f);
 		uboCharacter.mvpMat[0] = Prj * View * WorldMatrix;
 		uboCharacter.mMat[0] = WorldMatrix;
-		uboCharacter.nMat = glm::inverse(glm::transpose(WorldMatrix));
+		uboCharacter.nMat[0] = glm::inverse(glm::transpose(WorldMatrix));
 		DSCharacter.map(currentImage, &uboCharacter, sizeof(uboCharacter), 0);
 
 		//code to move objects around
-		/*
-		glm::mat4 objWorldMatrix = glm::mat4(
-    		glm::vec4(right, 0.0f),
-    		glm::vec4(newUp, 0.0f),
-    		glm::vec4(direction, 0.0f),
-    		glm::vec4(objPos, 1.0f)
-		);
-		*/
+		std::list<Ball>::iterator currentBall;
 
-		glm::mat4 objectWorldMatrix = ball.updatePosition(deltaT);
-
-		uboCharacter.mvpMat[0] = Prj * View * objectWorldMatrix;
-		uboCharacter.mMat[0] = objectWorldMatrix;
-		DSCharacter2.map(currentImage, &uboCharacter, sizeof(uboCharacter), 0);
+		for(currentBall = wave.balls.begin(); currentBall != wave.balls.end(); currentBall++) {
+			glm::mat4 objectWorldMatrix = currentBall->updatePosition(deltaT);
+			uboCharacter.mvpMat[currentBall->index] = Prj * View * objectWorldMatrix;
+			uboCharacter.mMat[currentBall->index] = objectWorldMatrix;
+			uboCharacter.nMat[currentBall->index] = glm::inverse(glm::transpose(objectWorldMatrix));
+			DSCharacter2.map(currentImage, &uboCharacter, sizeof(uboCharacter), 0);
+		}
 
 		glm::mat4 World = glm::mat4(1);
 		World = World * glm::translate(glm::mat4(1), glm::vec3(-20,0,-20))*glm::scale(glm::mat4(1), glm::vec3(50, 1, 50));
 		uboFloor.amb = 1.0f; uboFloor.gamma = 180.0f; uboFloor.sColor = glm::vec3(1.0f);
 		uboFloor.mvpMat[0] = Prj * View * World;
 		uboFloor.mMat[0] = World;
-		uboFloor.nMat = glm::inverse(glm::transpose(World));
+		uboFloor.nMat[0] = glm::inverse(glm::transpose(World));
 		DSFloor.map(currentImage, &uboFloor, sizeof(uboFloor), 0);
-	
-	
-
-		//uboSplash.visible = (gameState == 0) ? 1.0f : 0.0f;
-		//DSSplash.map(currentImage, &uboSplash, sizeof(uboSplash), 0);
 	}	
 };
 

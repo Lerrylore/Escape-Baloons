@@ -3,6 +3,7 @@
 #include <iostream>
 #include <random>
 #include <cfenv>
+#include <list>
 
 /*
 struct wave {
@@ -20,60 +21,91 @@ T random(T range_from, T range_to) {
     return dis(gen);
 }
 
-
-
 class Ball {
     private:
         enum Side: int {up = 1, down = 2, left = 3, right = 4};
+        float speed = 1.0f;
 
     public:
         glm::vec3 position = glm::vec3(0.0f);
         glm::vec3 direction = glm::vec3(0.0f);
         glm::vec3 rotation = glm::vec3(0.0f);
-        float speed = 1.0f;
-        int index = 0;
+        int index;
 
-        Ball(glm::vec3 playerPosition, float deltaT) {
+        Ball(glm::vec3 playerPosition, float speed, int index) {
             //it would be best to use the template above, but the function is throwing a floating point exception :/
             int choice = 1 + (rand() % 4); //rand() is considered to be the worst choice for a random num generator lol
             Side side = static_cast<Side>(choice);
 
             switch (side) { //choose a starting side and assign a random starting position from the specific side
                 case up:
-                    position = glm::vec3(random(-5.0f, 5.0f), 0.0f, 5.0f);
+                    this->position = glm::vec3(random(-5.0f, 5.0f), 0.0f, 5.0f);
                     break;
                 case down:
-                    position = glm::vec3(random(-5.0f, 5.0f), 0.0f, -5.0f);
+                    this->position = glm::vec3(random(-5.0f, 5.0f), 0.0f, -5.0f);
                     break;
                 case left:
-                    position = glm::vec3(-5.0f, 0.0f, random(-5.0f, 5.0f));
+                    this->position = glm::vec3(-5.0f, 0.0f, random(-5.0f, 5.0f));
                     break;
                 case right:
-                    position = glm::vec3(5.0f, 0.0f, random(-5.0f, 5.0f));
+                    this->position = glm::vec3(5.0f, 0.0f, random(-5.0f, 5.0f));
                     break;
             }
 
-            direction = glm::normalize(playerPosition - position);
+            this->direction = glm::normalize(playerPosition - position);
+            this->index = index;
 
             //TODO add rotation
             // updatePosition(playerPosition, deltaT);
             //position must be updated outside the initializer so that the function can return a worldMatrix
         } 
         
-        glm::mat4 updatePosition(float deltaT) {
+        glm::mat4 updatePosition(float deltaT) { //updates internal position of a ball and returns the associated worldMatrix
             glm::vec3 velocity = direction * speed;
             position += velocity * deltaT;
 
-            glm::vec3 right = glm::cross(direction, glm::vec3(0.0f, 1.0f, 0.0f));
-		    glm::vec3 newUp = glm::cross(right, direction);
-
-            glm::mat4 worldMatrix = glm::mat4(
-                glm::vec4(right, 0.0f),
-                glm::vec4(newUp, 0.0f),
-                glm::vec4(direction, 0.0f),
-                glm::vec4(position, 1.0f)
-		    );
+            glm::mat4 worldMatrix = glm::translate(glm::mat4(1.0), position) * glm::scale(glm::mat4(1.0), glm::vec3(1,1,1));
 
             return worldMatrix;
+        }
+};
+
+class Wave {
+    private:
+        float speed;
+        glm::vec3 minArea;
+        glm::vec3 maxArea;
+
+        bool isOutsideSquare(glm::vec3 position) {
+            return position.x < minArea.x || position.x > maxArea.x || position.z < minArea.z || position.z > maxArea.z;
+        }
+
+    public:
+        std::list<Ball> balls; //TODO usare ArrayList
+        int waveSize;
+        int currentBall;
+
+        Wave(int waveSize, float speed, glm::vec3 minArea, glm::vec3 maxArea) {
+            this->speed = speed;
+            this->waveSize = waveSize;
+
+            this->minArea = minArea;
+            this->maxArea = maxArea;
+        }
+
+        void addBall(glm::vec3 playerPosition) {
+            if(balls.size() <= waveSize) balls.push_back(Ball(playerPosition, speed, balls.size()));
+        }
+
+        void removeOutOfBoundBalls() {
+            std::list<Ball>::iterator it;
+            if(waveSize >= 0) {
+                for (it = balls.begin(); it != balls.end(); ++it){
+                    if(isOutsideSquare(it->position)) {
+                        std::cout << "deleting..." << std::endl;
+                        it = balls.erase(it);
+                    }
+                }
+            }
         }
 };
