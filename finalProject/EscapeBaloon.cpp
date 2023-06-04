@@ -2,6 +2,9 @@
 
 #include "Starter.hpp"
 
+
+
+
 // The uniform buffer objects data structures
 // Remember to use the correct alignas(...) value
 //        float : alignas(4)
@@ -25,6 +28,8 @@ struct OverlayUniformBlock {
 };
 
 struct GlobalUniformBlock {
+	alignas(4) float cosout;
+	alignas(4) float cosin;
 	alignas(16) glm::vec3 lightPos;
 	alignas(16) glm::vec3 DlightDir;
 	alignas(16) glm::vec3 DlightColor;
@@ -42,6 +47,10 @@ struct VertexOverlay {
 	glm::vec2 pos;
 	glm::vec2 UV;
 };
+
+
+
+float gameTime;
 
 
 
@@ -76,6 +85,8 @@ class SlotMachine : public BaseProject {
 	GlobalUniformBlock gubo;
 	OverlayUniformBlock uboKey, uboSplash;
 
+
+
 	// Other application parameters
 	float CamH, CamRadius, CamPitch, CamYaw;
 	int gameState;
@@ -90,9 +101,9 @@ class SlotMachine : public BaseProject {
 		initialBackgroundColor = {0.0f, 0.005f, 0.01f, 1.0f};
 		
 		// Descriptor pool sizes
-		uniformBlocksInPool = 8;
-		texturesInPool = 7;
-		setsInPool = 8;
+		uniformBlocksInPool = 15;
+		texturesInPool = 15;
+		setsInPool = 15;
 		
 		Ar = (float)windowWidth / (float)windowHeight;
 	}
@@ -105,6 +116,7 @@ class SlotMachine : public BaseProject {
 	// Here you load and setup all your Vulkan Models and Texutures.
 	// Here you also create your Descriptor set layouts and load the shaders for the pipelines
 	void localInit() {
+
 		// Descriptor Layouts [what will be passed to the shaders]
 		DSLMesh.init(this, {
 					// this array contains the bindings:
@@ -203,6 +215,8 @@ class SlotMachine : public BaseProject {
 		CamPitch = glm::radians(15.f);
 		CamYaw = glm::radians(30.f);
 		gameState = 0;
+
+
 	}
 	
 	// Here you create your pipelines and Descriptor Sets!
@@ -229,6 +243,8 @@ class SlotMachine : public BaseProject {
 		DSGubo.init(this, &DSLGubo, {
 					{0, UNIFORM, sizeof(GlobalUniformBlock), nullptr}
 				});
+
+
 	}
 
 	// Here you destroy your pipelines and Descriptor Sets!
@@ -243,6 +259,8 @@ class SlotMachine : public BaseProject {
 		DSFloor.cleanup();
 
 		DSGubo.cleanup();
+
+
 	}
 
 	// Here you destroy all the Models, Texture and Desc. Set Layouts you created!
@@ -270,6 +288,8 @@ class SlotMachine : public BaseProject {
 		// Destroies the pipelines
 		PMesh.destroy();		
 		POverlay.destroy();
+
+
 	}
 	
 	// Here it is the creation of the command buffer:
@@ -309,11 +329,13 @@ class SlotMachine : public BaseProject {
 		vkCmdDrawIndexed(commandBuffer,
 				static_cast<uint32_t>(MFloor.indices.size()), 1, 0, 0, 0);
 
+
 	}
 
 	// Here is where you update the uniforms.
 	// Very likely this will be where you will be writing the logic of your application.
 	void updateUniformBuffer(uint32_t currentImage) {
+
 		// Standard procedure to quit when the ESC key is pressed
 		if(glfwGetKey(window, GLFW_KEY_ESCAPE)) {
 			glfwSetWindowShouldClose(window, GL_TRUE);
@@ -347,8 +369,10 @@ class SlotMachine : public BaseProject {
 		static float roll = 0.0f;
 		static float yaw2 = 0.0f;
 		// static variables for current angles
-		
-
+		static auto start = std::chrono::high_resolution_clock::now();
+		auto currentTime = std::chrono::high_resolution_clock::now();
+		gameTime = std::chrono::duration<float, std::chrono::seconds::period> //TIMER IN SECONDI
+					(currentTime - start).count();
 		
 		
 		// Parameters
@@ -414,6 +438,9 @@ class SlotMachine : public BaseProject {
 		gubo.DlightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 		gubo.eyePos = camPos;
 		gubo.lightPos = Pos + glm::vec3(0,5,0.0f);
+		float constant = gameTime / 600;
+		gubo.cosout = 0.70f+constant;
+		gubo.cosin = 0.75+constant;
 
 		// Writes value to the GPU
 		DSGubo.map(currentImage, &gubo, sizeof(gubo), 0);

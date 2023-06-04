@@ -8,6 +8,8 @@ layout(location = 2) in vec2 fragUV;
 layout(location = 0) out vec4 outColor;
 
 layout(set = 0, binding = 0) uniform GlobalUniformBufferObject {
+	float cosout;
+	float cosin;
 	vec3 lightPos;
 	vec3 DlightDir;		// direction of the direct light
 	vec3 DlightColor;	// color of the direct light	// ambient light
@@ -20,15 +22,15 @@ layout(set = 0, binding = 0) uniform GlobalUniformBufferObject {
 
 layout(set = 1, binding = 1) uniform sampler2D tex;
 const float beta = 2.0f;
-const float g = 1.5f;
-const float cosout = 0.70;
-const float cosin  = 0.75;
+const float g = 2.5f;
+
 
 
 void main() {
 	vec3 Norm = normalize(fragNorm);
 	vec3 EyeDir = normalize(gubo.eyePos - fragPos);
-	
+	float cosin = gubo.cosin;
+	float cosout = gubo.cosout;
 	// replace the following lines with the code to implement a spot light model (based on point lights)
 	// with the light color in gubo.lightColor, the position in gubo.lightPos,
 	// and the direction in gubo.lightDir.

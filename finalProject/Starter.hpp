@@ -183,6 +183,7 @@ enum ModelType {OBJ, GLTF};
 
 template <class Vert>
 class Model {
+public:
 	BaseProject *BP;
 	
 	VkBuffer vertexBuffer;
