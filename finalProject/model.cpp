@@ -34,7 +34,8 @@ class Ball {
         int index = 0;
 
         Ball(glm::vec3 playerPosition, float deltaT) {
-            int choice = random<int>(1, 4);
+            //it would be best to use the template above, but the function is throwing a floating point exception :/
+            int choice = 1 + (rand() % 4); //rand() is considered to be the worst choice for a random num generator lol
             Side side = static_cast<Side>(choice);
 
             switch (side) { //choose a starting side and assign a random starting position from the specific side
