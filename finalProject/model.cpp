@@ -25,6 +25,8 @@ class Ball {
     private:
         enum Side: int {up = 1, down = 2, left = 3, right = 4};
         float speed = 1.0f;
+        glm::vec3 minArea = glm::vec3(-5.0f, 0.0f, -5.0f);
+		glm::vec3 maxArea = glm::vec3(5.0f, 0.0f, 5.0f);
 
     public:
         glm::vec3 position = glm::vec3(0.0f);
@@ -59,12 +61,22 @@ class Ball {
             // updatePosition(playerPosition, deltaT);
             //position must be updated outside the initializer so that the function can return a worldMatrix
         } 
+
+        bool isOutsideSquare() {
+            return position.x < minArea.x || position.x > maxArea.x || position.z < minArea.z || position.z > maxArea.z;
+        }
         
         glm::mat4 updatePosition(float deltaT) { //updates internal position of a ball and returns the associated worldMatrix
             glm::vec3 velocity = direction * speed;
             position += velocity * deltaT;
 
-            glm::mat4 worldMatrix = glm::translate(glm::mat4(1.0), position) * glm::scale(glm::mat4(1.0), glm::vec3(1,1,1));
+            glm::mat4 worldMatrix;
+
+            if(!isOutsideSquare()){
+                worldMatrix = glm::translate(glm::mat4(1.0), position) * glm::scale(glm::mat4(1.0), glm::vec3(1,1,1));
+            } else {
+                worldMatrix = glm::mat4(0.0f);
+            }
 
             return worldMatrix;
         }
