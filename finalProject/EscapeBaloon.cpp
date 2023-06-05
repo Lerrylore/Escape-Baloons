@@ -57,7 +57,6 @@ struct VertexOverlay {
 float gameTime;
 
 
-
 void GameLogic(float deltaT, float Ar, glm::mat4 &ViewPrj, glm::mat4 &World);
 // MAIN ! 
 class SlotMachine : public BaseProject {
@@ -79,10 +78,10 @@ class SlotMachine : public BaseProject {
 
 	// Models, textures and Descriptors (values assigned to the uniforms)
 	// Please note that Model objects depends on the corresponding vertex structure
-	Model<VertexMesh> MCharacter, MFloor, MBall;
+	Model<VertexMesh> MCharacter, MFloor, MSphere;
 	Model<VertexOverlay> MKey, MSplash;
-	DescriptorSet DSGubo, DSCharacter, DSCharacter2, DSBall, DSFloor;
-	Texture TCharacter, TFloor, TBall;
+	DescriptorSet DSGubo, DSCharacter, DSSphere, DSBall, DSFloor;
+	Texture TCharacter, TFloor, TSphere;
 	
 	// C++ storage for uniform variables
 	MeshUniformBlock uboCharacter, uboFloor, uboSphere;
@@ -94,6 +93,7 @@ class SlotMachine : public BaseProject {
 	// Other application parameters
 	float CamH, CamRadius, CamPitch, CamYaw;
 	int gameState;
+
 
 	// Here you set the main application parameters
 	void setWindowParameters() {
@@ -207,11 +207,13 @@ class SlotMachine : public BaseProject {
 
 		// Creates a mesh with direct enumeration of vertices and indices
 		MFloor.init(this, &VMesh, "Models/floor.obj", OBJ);
+		MSphere.init(this, &VMesh, "Models/Sphere.obj", OBJ);
 		
 		// Create the textures
 		// The second parameter is the file name
 		TCharacter.init(this,   "textures/red_Base_Color.png");
 		TFloor.init(this, "textures/floor.jpg");
+		TSphere.init(this, "textures/Grass_07_basecolor.png");
 		
 		// Init local variables
 		CamH = 1.0f;
@@ -241,9 +243,9 @@ class SlotMachine : public BaseProject {
 					{1, TEXTURE, 0, &TCharacter}
 				});
 
-		DSCharacter2.init(this, &DSLMesh, {
+		DSSphere.init(this, &DSLMesh, {
 			{0, UNIFORM, sizeof(MeshUniformBlock), nullptr},
-			{1, TEXTURE, 0, &TCharacter}
+			{1, TEXTURE, 0, &TSphere}
 		});
 		DSFloor.init(this, &DSLMesh, {
 					{0, UNIFORM, sizeof(MeshUniformBlock), nullptr},
@@ -265,7 +267,7 @@ class SlotMachine : public BaseProject {
 
 		// Cleanup datasets
 		DSCharacter.cleanup();
-		DSCharacter2.cleanup();
+		DSSphere.cleanup();
 		DSFloor.cleanup();
 
 		DSGubo.cleanup();
@@ -281,6 +283,7 @@ class SlotMachine : public BaseProject {
 		// Cleanup textures
 		TCharacter.cleanup();
 		TFloor.cleanup();
+		TSphere.cleanup();
 
 		
 		// Cleanup models
@@ -288,6 +291,7 @@ class SlotMachine : public BaseProject {
 		MFloor.cleanup();
 		MKey.cleanup();
 		MSplash.cleanup();
+		MSphere.cleanup();
 		
 		// Cleanup descriptor set layouts
 		DSLMesh.cleanup();
@@ -327,14 +331,14 @@ class SlotMachine : public BaseProject {
 		// As described in the Vulkan tutorial, a different dataset is required for each image in the swap chain.
 		// This is done automatically in file Starter.hpp, however the command here needs also the index
 		// of the current image in the swap chain, passed in its last parameter
-					
+		
 		// record the drawing command in the command buffer
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MCharacter.indices.size()), 1, 0, 0, 0);
 		// the second parameter is the number of indexes to be drawn. For a Model object,
 		// this can be retrieved with the .indices.size() method.
-
-		DSCharacter2.bind(commandBuffer, PMesh, 1, currentImage);
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MCharacter.indices.size()), 20, 0, 0, 0);
+		MSphere.bind(commandBuffer);
+		DSSphere.bind(commandBuffer, PMesh, 1, currentImage);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphere.indices.size()), WAVE_SIZE, 0, 0, 0);
 
 		MFloor.bind(commandBuffer);
 		DSFloor.bind(commandBuffer, PMesh, 1, currentImage);
@@ -378,6 +382,7 @@ class SlotMachine : public BaseProject {
 		const glm::vec3 StartingPosition = glm::vec3(3.0, 0.0, -2.0);
 		static Wave wave = Wave(10, 1.0f, minArea, maxArea);
 		//static Ball ball = Ball(StartingPosition, deltaT);
+
 
 		// Parameters: wheels and handle speed and range
 		static glm::vec3 Pos = StartingPosition;
@@ -481,10 +486,10 @@ class SlotMachine : public BaseProject {
 
 		for(currentBall = wave.balls.begin(); currentBall != wave.balls.end(); currentBall++) {
 			glm::mat4 objectWorldMatrix = currentBall->updatePosition(deltaT);
-			uboCharacter.mvpMat[currentBall->index] = Prj * View * objectWorldMatrix;
-			uboCharacter.mMat[currentBall->index] = objectWorldMatrix;
-			uboCharacter.nMat[currentBall->index] = glm::inverse(glm::transpose(objectWorldMatrix));
-			DSCharacter2.map(currentImage, &uboCharacter, sizeof(uboCharacter), 0);
+			uboSphere.mvpMat[currentBall->index] = Prj * View * objectWorldMatrix;
+			uboSphere.mMat[currentBall->index] = objectWorldMatrix;
+			uboSphere.nMat[currentBall->index] = glm::inverse(glm::transpose(objectWorldMatrix));
+			DSSphere.map(currentImage, &uboSphere, sizeof(uboSphere), 0);
 		}
 
 		glm::mat4 World = glm::mat4(1);
