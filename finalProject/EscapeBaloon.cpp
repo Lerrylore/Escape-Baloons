@@ -391,7 +391,7 @@ class SlotMachine : public BaseProject {
 
 		float tolerance = 0.05f; // Tolerance value for comparison
 
-		if (std::fabs(std::fmod(gameTime, 3.0f)) < tolerance) {
+		if (std::fabs(std::fmod(gameTime, 5.0f)) < tolerance) {
 			std::cout << "new ball" << std::endl;
 			glm::vec3 positionToTrack = Pos;
 			wave.addBall(positionToTrack);
@@ -489,8 +489,26 @@ class SlotMachine : public BaseProject {
 			uboSphere.mvpMat[currentBall->index] = Prj * View * objectWorldMatrix;
 			uboSphere.mMat[currentBall->index] = objectWorldMatrix;
 			uboSphere.nMat[currentBall->index] = glm::inverse(glm::transpose(objectWorldMatrix));
-			DSSphere.map(currentImage, &uboSphere, sizeof(uboSphere), 0);
+
+			/*
+				if(currentBall == wave.balls.end()) {
+					for(int i = currentBall->index; i < WAVE_SIZE; i++) {
+						mvpMat[i] = glm::mat4(0.0f);
+						mvpMat[i] = glm::mat4(0.0f);
+						mvpMat[i] = glm::mat4(0.0f);
+					}
+				}
+			*/
 		}
+
+		/*
+			FOR ball in balls updatePosition
+			FOR ball in balls -> remove those in which position is outOfBound
+							  -> shift ball index
+
+			FOR ball in balls  -> update mvpMat, mMat, nMat
+		*/
+		DSSphere.map(currentImage, &uboSphere, sizeof(uboSphere), 0);
 
 		glm::mat4 World = glm::mat4(1);
 		World = World * glm::translate(glm::mat4(1), glm::vec3(-20,0,-20))*glm::scale(glm::mat4(1), glm::vec3(50, 1, 50));

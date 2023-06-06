@@ -125,6 +125,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 0E4B02B929A3F4070095CFB5 /* Build configuration list for PBXNativeTarget "finalProject" */;
 			buildPhases = (
+				0EF08A3D2A2F410F0001F647 /* ShellScript */,
 				0E4B02AE29A3F4070095CFB5 /* Sources */,
 				0E4B02AF29A3F4070095CFB5 /* Frameworks */,
 				0E4B02B029A3F4070095CFB5 /* CopyFiles */,
@@ -170,6 +171,26 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		0EF08A3D2A2F410F0001F647 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n/Users/thepantalion/Documents/Università/Informatica/Programmazione/Vulkan/Escape-Baloons/finalProject/shaders/compileShader.command\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		0E4B02AE29A3F4070095CFB5 /* Sources */ = {

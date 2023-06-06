@@ -383,3 +383,4 @@ finalProjectWorkspace.xcworkspace/xcuserdata/thepantalion.xcuserdatad/WorkspaceS
 .vscode/tasks.json
 .vscode/xcodebuild-tools.json
 finalProject.xcodeproj/project.xcworkspace/xcuserdata/thepantalion.xcuserdatad/UserInterfaceState.xcuserstate
+finalProject/shaders/compileShader.command

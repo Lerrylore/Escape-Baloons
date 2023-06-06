@@ -119,5 +119,9 @@ class Wave {
                     }
                 }
             }
+
+            /*
+                for per shiftare gli index in modo da avere 0->balls.size
+            */
         }
 };
