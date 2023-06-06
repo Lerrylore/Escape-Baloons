@@ -29,9 +29,11 @@ class Ball {
 		glm::vec3 maxArea = glm::vec3(5.0f, 0.0f, 5.0f);
 
     public:
+        float size = random(0.1f, 1.0f);
         glm::vec3 position = glm::vec3(0.0f);
         glm::vec3 direction = glm::vec3(0.0f);
         glm::vec3 rotation = glm::vec3(0.0f);
+        
         int index;
 
         Ball(glm::vec3 playerPosition, float speed, int index) {
@@ -56,6 +58,7 @@ class Ball {
 
             this->direction = glm::normalize(playerPosition - position);
             this->index = index;
+            this->position += glm::vec3(0.0f, size, 0.0f);
 
             //TODO add rotation
             // updatePosition(playerPosition, deltaT);
@@ -67,13 +70,13 @@ class Ball {
         }
         
         glm::mat4 updatePosition(float deltaT) { //updates internal position of a ball and returns the associated worldMatrix
-            glm::vec3 velocity = direction * speed;
+            glm::vec3 velocity = direction * speed/size;
             position += velocity * deltaT;
-
+            float rotationSpeed = glm::radians(10.0f);
             glm::mat4 worldMatrix;
 
             if(!isOutsideSquare()){
-                worldMatrix = glm::translate(glm::mat4(1.0), position) * glm::scale(glm::mat4(1.0), glm::vec3(1,1,1));
+                worldMatrix = glm::translate(glm::mat4(1.0), position) * glm::scale(glm::mat4(1.0), glm::vec3(size));
             } else {
                 worldMatrix = glm::mat4(0.0f);
             }

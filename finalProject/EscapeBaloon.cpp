@@ -311,39 +311,46 @@ class SlotMachine : public BaseProject {
 	// with their buffers and textures
 	
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage) {
-		// sets global uniforms (see below fro parameters explanation)
-		DSGubo.bind(commandBuffer, PMesh, 0, currentImage);
+		switch(gameState)
+		{
+		case 0:
+			// sets global uniforms (see below fro parameters explanation)
+			DSGubo.bind(commandBuffer, PMesh, 0, currentImage);
 
-		// binds the pipeline
-		PMesh.bind(commandBuffer);
-		// For a pipeline object, this command binds the corresponing pipeline to the command buffer passed in its parameter
+			// binds the pipeline
+			PMesh.bind(commandBuffer);
+			// For a pipeline object, this command binds the corresponing pipeline to the command buffer passed in its parameter
 
-		// binds the model
-		MCharacter.bind(commandBuffer);
-		// For a Model object, this command binds the corresponing index and vertex buffer
-		// to the command buffer passed in its parameter
-		
-		// binds the data set
-		DSCharacter.bind(commandBuffer, PMesh, 1, currentImage);
-		// For a Dataset object, this command binds the corresponing dataset
-		// to the command buffer and pipeline passed in its first and second parameters.
-		// The third parameter is the number of the set being bound
-		// As described in the Vulkan tutorial, a different dataset is required for each image in the swap chain.
-		// This is done automatically in file Starter.hpp, however the command here needs also the index
-		// of the current image in the swap chain, passed in its last parameter
-		
-		// record the drawing command in the command buffer
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MCharacter.indices.size()), 1, 0, 0, 0);
-		// the second parameter is the number of indexes to be drawn. For a Model object,
-		// this can be retrieved with the .indices.size() method.
-		MSphere.bind(commandBuffer);
-		DSSphere.bind(commandBuffer, PMesh, 1, currentImage);
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphere.indices.size()), WAVE_SIZE, 0, 0, 0);
+			// binds the model
+			MCharacter.bind(commandBuffer);
+			// For a Model object, this command binds the corresponing index and vertex buffer
+			// to the command buffer passed in its parameter
 
-		MFloor.bind(commandBuffer);
-		DSFloor.bind(commandBuffer, PMesh, 1, currentImage);
-		vkCmdDrawIndexed(commandBuffer,
+			// binds the data set
+			DSCharacter.bind(commandBuffer, PMesh, 1, currentImage);
+			// For a Dataset object, this command binds the corresponing dataset
+			// to the command buffer and pipeline passed in its first and second parameters.
+			// The third parameter is the number of the set being bound
+			// As described in the Vulkan tutorial, a different dataset is required for each image in the swap chain.
+			// This is done automatically in file Starter.hpp, however the command here needs also the index
+			// of the current image in the swap chain, passed in its last parameter
+
+			// record the drawing command in the command buffer
+			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MCharacter.indices.size()), 1, 0, 0, 0);
+			// the second parameter is the number of indexes to be drawn. For a Model object,
+			// this can be retrieved with the .indices.size() method.
+			MSphere.bind(commandBuffer);
+			DSSphere.bind(commandBuffer, PMesh, 1, currentImage);
+			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphere.indices.size()), WAVE_SIZE, 0, 0, 0);
+
+			MFloor.bind(commandBuffer);
+			DSFloor.bind(commandBuffer, PMesh, 1, currentImage);
+			vkCmdDrawIndexed(commandBuffer,
 				static_cast<uint32_t>(MFloor.indices.size()), 1, 0, 0, 0);
+			break;
+		case 1:
+			break;
+		}
 
 
 	}
@@ -356,167 +363,180 @@ class SlotMachine : public BaseProject {
 		if(glfwGetKey(window, GLFW_KEY_ESCAPE)) {
 			glfwSetWindowShouldClose(window, GL_TRUE);
 		}
-		// Integration with the timers and the controllers
-		float deltaT;
-		glm::vec3 m = glm::vec3(0.0f), r = glm::vec3(0.0f);
-		bool fire = false;
-		getSixAxis(deltaT, m, r, fire);
-		// getSixAxis() is defined in Starter.hpp in the base class.
-		// It fills the float point variable passed in its first parameter with the time
-		// since the last call to the procedure.
-		// It fills vec3 in the second parameters, with three values in the -1,1 range corresponding
-		// to motion (with left stick of the gamepad, or ASWD + RF keys on the keyboard)
-		// It fills vec3 in the third parameters, with three values in the -1,1 range corresponding
-		// to motion (with right stick of the gamepad, or Arrow keys + QE keys on the keyboard, or mouse)
-		// If fills the last boolean variable with true if fire has been pressed:
-		//          SPACE on the keyboard, A or B button on the Gamepad, Right mouse button
-
-		static auto start = std::chrono::high_resolution_clock::now();
-		auto currentTime = std::chrono::high_resolution_clock::now();
-		gameTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - start).count(); /*TIMER IN SECONDI*/
-
-		static glm::vec3 minArea = glm::vec3(-5.0f, 0.0f, -5.0f);
-		static glm::vec3 maxArea = glm::vec3(5.0f, 0.0f, 5.0f);
-
-		// To debounce the pressing of the fire button, and start the event when the key is released
-		const glm::vec3 StartingPosition = glm::vec3(3.0, 0.0, -2.0);
-		static Wave wave = Wave(10, 1.0f, minArea, maxArea);
-		//static Ball ball = Ball(StartingPosition, deltaT);
-
-
-		// Parameters: wheels and handle speed and range
-		static glm::vec3 Pos = StartingPosition;
-		static glm::vec3 newPos;
-		static glm::vec3 oldPos = Pos;
-
-		float tolerance = 0.05f; // Tolerance value for comparison
-
-		if (std::fabs(std::fmod(gameTime, 5.0f)) < tolerance) {
-			std::cout << "new ball" << std::endl;
-			glm::vec3 positionToTrack = Pos;
-			wave.addBall(positionToTrack);
-		}
-
-		wave.removeOutOfBoundBalls();
 		
-		glm::mat4 WorldMatrix;
+			// Integration with the timers and the controllers
+			float deltaT;
+			glm::vec3 m = glm::vec3(0.0f), r = glm::vec3(0.0f);
+			bool fire = false;
+			getSixAxis(deltaT, m, r, fire);
+			// getSixAxis() is defined in Starter.hpp in the base class.
+			// It fills the float point variable passed in its first parameter with the time
+			// since the last call to the procedure.
+			// It fills vec3 in the second parameters, with three values in the -1,1 range corresponding
+			// to motion (with left stick of the gamepad, or ASWD + RF keys on the keyboard)
+			// It fills vec3 in the third parameters, with three values in the -1,1 range corresponding
+			// to motion (with right stick of the gamepad, or Arrow keys + QE keys on the keyboard, or mouse)
+			// If fills the last boolean variable with true if fire has been pressed:
+			//          SPACE on the keyboard, A or B button on the Gamepad, Right mouse button
 
-		static float yaw = 0.0f;
-		static float pitch = glm::radians(-65.0f);
-		static float roll = 0.0f;
-		static float yaw2 = 0.0f;
-		// static variables for current angles
-		
-		// Parameters
-		// Camera FOV-y, Near Plane and Far Plane
-		const float FOVy = glm::radians(45.0f);
-		const float nearPlane = 0.1f;
-		const float farPlane = 100.0f;
+			static auto start = std::chrono::high_resolution_clock::now();
+			auto currentTime = std::chrono::high_resolution_clock::now();
+			gameTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - start).count(); /*TIMER IN SECONDI*/
 
-		const float ROT_SPEED = glm::radians(90.0f);
-		const float MOVE_SPEED = 5.0f;
+			static glm::vec3 minArea = glm::vec3(-5.0f, 0.0f, -5.0f);
+			static glm::vec3 maxArea = glm::vec3(5.0f, 0.0f, 5.0f);
 
-		float correctionAngle = glm::radians(90.0f) +yaw;
-		if (m.x == 0 && m.z > 0) yaw2 = glm::radians(90.0f) + correctionAngle;
-		if (m.x == 0 && m.z < 0) yaw2 = glm::radians(-90.0f) + correctionAngle;
-		if (m.x < 0 && m.z >= 0) yaw2 = atan(m.z/m.x)+glm::radians(180.0f) + correctionAngle;
-		if (m.x < 0 && m.z < 0) yaw2 = atan(m.z/m.x)-glm::radians(180.0f) + correctionAngle;
-		if (m.x > 0) yaw2 = atan(m.z / m.x) + correctionAngle;
-		
-		const float CamH = 2.4;
-		const float CamD = 7.5;
-		pitch += ROT_SPEED * r.x * deltaT/4;
-		//if (pitch <= minPitch) pitch = minPitch;
-		//if (pitch >= maxPitch) pitch = maxPitch;
-		//roll += ROT_SPEED * r.z * deltaT;
-		glm::vec3 ux = glm::vec3(glm::rotate(glm::mat4(1), yaw, glm::vec3(0, 1, 0)) * glm::vec4(1, 0, 0, 1));
-		glm::vec3 uy = glm::vec3(0,1,0);
-		glm::vec3 uz = glm::vec3(glm::rotate(glm::mat4(1), yaw, glm::vec3(0, 1, 0)) * glm::vec4(0, 0, -1, 1));
+			// To debounce the pressing of the fire button, and start the event when the key is released
+			const glm::vec3 StartingPosition = glm::vec3(3.0, 0.0, -2.0);
+			static Wave wave = Wave(10, 1.0f, minArea, maxArea);
+			//static Ball ball = Ball(StartingPosition, deltaT);
 
-		Pos += ux * MOVE_SPEED * m.x * deltaT;
-		Pos += uy * MOVE_SPEED * m.y * deltaT;
-		Pos += uz * MOVE_SPEED * m.z * deltaT;
 
-		//constraints check
-		if (Pos.y <= 0) Pos.y = 0;
-		if (Pos.y > 0 && m.y == 0) Pos.y -= 0.01;
-		if (Pos.x > 5.0f) Pos.x = 5.0f;
-		if (Pos.x < -5.0f) Pos.x = -5.0f;
-		if (Pos.z > 5.0f) Pos.z = 5.0f;
-		if (Pos.z < -5.0f) Pos.z = -5.0f;
+			// Parameters: wheels and handle speed and range
+			static glm::vec3 Pos = StartingPosition;
+			static glm::vec3 newPos;
+			static glm::vec3 oldPos = Pos;
 
-		float lamba = 10.0f;
-		newPos = (oldPos * exp(-lamba * deltaT)) + Pos * (1 - exp(-lamba * deltaT));
-		oldPos = newPos;
+			float tolerance = 0.05f; // Tolerance value for comparison
 
-		WorldMatrix = glm::translate(glm::mat4(1.0), Pos) * glm::rotate(glm::mat4(1.0), yaw2, glm::vec3(0,1,0)) * glm::rotate(glm::mat4(1.0), roll, glm::vec3(0,0,1))* glm::scale(glm::mat4(1.0), glm::vec3(1,1,1));
-		
-		glm::mat4 WorldMatrixNew = glm::translate(glm::mat4(1.0), newPos) * glm::rotate(glm::mat4(1.0), yaw, glm::vec3(0,1,0))* glm::rotate(glm::mat4(1.0), pitch, glm::vec3(1,0,0)) * glm::scale(glm::mat4(1.0), glm::vec3(1,1,1));
-		
-		glm::mat4 Prj = glm::perspective(FOVy, Ar, nearPlane, farPlane);
-		Prj[1][1] *= -1;
+			if (std::fabs(std::fmod(gameTime, 5.0f)) < tolerance) {
+				std::cout << "new ball" << std::endl;
+				glm::vec3 positionToTrack = Pos;
+				wave.addBall(positionToTrack);
+			}
 
-		glm::vec3 camTarget = glm::vec3( WorldMatrixNew * glm::vec4(0, 0, 0, 1)) + glm::vec3(0, CamH, 0);
-		glm::vec3 camPos    = WorldMatrixNew * glm::vec4(0, CamH + CamD * sin(glm::radians(pitch)), CamD * cos(glm::radians(pitch)), 1);
-		glm::mat4 View = glm::lookAt(camPos, camTarget, glm::vec3(0,1,0));
+			wave.removeOutOfBoundBalls();
 
-		gubo.DlightDir = glm::normalize((Pos + glm::vec3(0,5, 0)) - Pos);
-		gubo.DlightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-		gubo.eyePos = camPos;
-		gubo.lightPos = Pos + glm::vec3(0,5,0.0f);
-		float constant = gameTime / 600;
-		gubo.cosout = 0.70f+constant;
-		gubo.cosin = 0.75+constant;
+			glm::mat4 WorldMatrix;
 
-		// Writes value to the GPU
-		DSGubo.map(currentImage, &gubo, sizeof(gubo), 0);
-		// the .map() method of a DataSet object, requires the current image of the swap chain as first parameter
-		// the second parameter is the pointer to the C++ data structure to transfer to the GPU
-		// the third parameter is its size
-		// the fourth parameter is the location inside the descriptor set of this uniform block
+			static float yaw = 0.0f;
+			static float pitch = glm::radians(-65.0f);
+			static float roll = 0.0f;
+			static float yaw2 = 0.0f;
+			// static variables for current angles
+			float constant = gameTime / 600; //angle of spotlight
+			// Parameters
+			// Camera FOV-y, Near Plane and Far Plane
+			const float FOVy = glm::radians(45.0f);
+			const float nearPlane = 0.1f;
+			const float farPlane = 100.0f;
 
-		uboCharacter.amb = 1.0f; uboCharacter.gamma = 180.0f; uboCharacter.sColor = glm::vec3(1.0f);
-		uboCharacter.mvpMat[0] = Prj * View * WorldMatrix;
-		uboCharacter.mMat[0] = WorldMatrix;
-		uboCharacter.nMat[0] = glm::inverse(glm::transpose(WorldMatrix));
-		DSCharacter.map(currentImage, &uboCharacter, sizeof(uboCharacter), 0);
+			const float ROT_SPEED = glm::radians(90.0f);
+			const float MOVE_SPEED = 5.0f;
 
-		//code to move objects around
-		std::list<Ball>::iterator currentBall;
+			float correctionAngle = glm::radians(90.0f) + yaw;
+			if (m.x == 0 && m.z > 0) yaw2 = glm::radians(90.0f) + correctionAngle;
+			if (m.x == 0 && m.z < 0) yaw2 = glm::radians(-90.0f) + correctionAngle;
+			if (m.x < 0 && m.z >= 0) yaw2 = atan(m.z / m.x) + glm::radians(180.0f) + correctionAngle;
+			if (m.x < 0 && m.z < 0) yaw2 = atan(m.z / m.x) - glm::radians(180.0f) + correctionAngle;
+			if (m.x > 0) yaw2 = atan(m.z / m.x) + correctionAngle;
 
-		for(currentBall = wave.balls.begin(); currentBall != wave.balls.end(); currentBall++) {
-			glm::mat4 objectWorldMatrix = currentBall->updatePosition(deltaT);
-			uboSphere.mvpMat[currentBall->index] = Prj * View * objectWorldMatrix;
-			uboSphere.mMat[currentBall->index] = objectWorldMatrix;
-			uboSphere.nMat[currentBall->index] = glm::inverse(glm::transpose(objectWorldMatrix));
+			const float CamH = 2.4;
+			const float CamD = 7.5;
+			pitch += ROT_SPEED * r.x * deltaT / 4;
+			//if (pitch <= minPitch) pitch = minPitch;
+			//if (pitch >= maxPitch) pitch = maxPitch;
+			//roll += ROT_SPEED * r.z * deltaT;
+			glm::vec3 ux = glm::vec3(glm::rotate(glm::mat4(1), yaw, glm::vec3(0, 1, 0)) * glm::vec4(1, 0, 0, 1));
+			glm::vec3 uy = glm::vec3(0, 1, 0);
+			glm::vec3 uz = glm::vec3(glm::rotate(glm::mat4(1), yaw, glm::vec3(0, 1, 0)) * glm::vec4(0, 0, -1, 1));
+
+			Pos += ux * MOVE_SPEED * m.x * deltaT;
+			Pos += uy * MOVE_SPEED * m.y * deltaT;
+			Pos += uz * MOVE_SPEED * m.z * deltaT;
+
+			//constraints check
+			if (Pos.y <= 0) Pos.y = 0;
+			if (Pos.y > 0 && m.y == 0) Pos.y -= 0.01;
+			if (Pos.x > 5.0f) Pos.x = 5.0f;
+			if (Pos.x < -5.0f) Pos.x = -5.0f;
+			if (Pos.z > 5.0f) Pos.z = 5.0f;
+			if (Pos.z < -5.0f) Pos.z = -5.0f;
+			//code to move objects around
+			std::list<Ball>::iterator currentBall;
+
+			float lamba = 10.0f;
+			switch(gameState)
+			{
+			case 0:
+			
+			newPos = (oldPos * exp(-lamba * deltaT)) + Pos * (1 - exp(-lamba * deltaT));
+			oldPos = newPos;
+
+			WorldMatrix = glm::translate(glm::mat4(1.0), Pos) * glm::rotate(glm::mat4(1.0), yaw2, glm::vec3(0, 1, 0)) * glm::rotate(glm::mat4(1.0), roll, glm::vec3(0, 0, 1)) * glm::scale(glm::mat4(1.0), glm::vec3(1, 1, 1));
+
+			glm::mat4 WorldMatrixNew = glm::translate(glm::mat4(1.0), newPos) * glm::rotate(glm::mat4(1.0), yaw, glm::vec3(0, 1, 0)) * glm::rotate(glm::mat4(1.0), pitch, glm::vec3(1, 0, 0)) * glm::scale(glm::mat4(1.0), glm::vec3(1, 1, 1));
+
+			glm::mat4 Prj = glm::perspective(FOVy, Ar, nearPlane, farPlane);
+			Prj[1][1] *= -1;
+
+			glm::vec3 camTarget = glm::vec3(WorldMatrixNew * glm::vec4(0, 0, 0, 1)) + glm::vec3(0, CamH, 0);
+			glm::vec3 camPos = WorldMatrixNew * glm::vec4(0, CamH + CamD * sin(glm::radians(pitch)), CamD * cos(glm::radians(pitch)), 1);
+			glm::mat4 View = glm::lookAt(camPos, camTarget, glm::vec3(0, 1, 0));
+
+			gubo.DlightDir = glm::normalize((Pos + glm::vec3(0, 5, 0)) - Pos);
+			gubo.DlightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+			gubo.eyePos = camPos;
+			gubo.lightPos = Pos + glm::vec3(0, 5, 0.0f);
+			
+			gubo.cosout = 0.70f + constant;
+			gubo.cosin = 0.75 + constant;
+
+			// Writes value to the GPU
+			DSGubo.map(currentImage, &gubo, sizeof(gubo), 0);
+			// the .map() method of a DataSet object, requires the current image of the swap chain as first parameter
+			// the second parameter is the pointer to the C++ data structure to transfer to the GPU
+			// the third parameter is its size
+			// the fourth parameter is the location inside the descriptor set of this uniform block
+
+			uboCharacter.amb = 1.0f; uboCharacter.gamma = 180.0f; uboCharacter.sColor = glm::vec3(1.0f);
+			uboCharacter.mvpMat[0] = Prj * View * WorldMatrix;
+			uboCharacter.mMat[0] = WorldMatrix;
+			uboCharacter.nMat[0] = glm::inverse(glm::transpose(WorldMatrix));
+			DSCharacter.map(currentImage, &uboCharacter, sizeof(uboCharacter), 0);
+
+			
+
+			for (currentBall = wave.balls.begin(); currentBall != wave.balls.end(); currentBall++) {
+				glm::mat4 objectWorldMatrix = currentBall->updatePosition(deltaT);
+				uboSphere.mvpMat[currentBall->index] = Prj * View * objectWorldMatrix;
+				uboSphere.mMat[currentBall->index] = objectWorldMatrix;
+				uboSphere.nMat[currentBall->index] = glm::inverse(glm::transpose(objectWorldMatrix));
+				if (glm::distance(currentBall->position, Pos) <= currentBall->size) {
+					gameState = 1;
+				}
+
+				/*
+					if(currentBall == wave.balls.end()) {
+						for(int i = currentBall->index; i < WAVE_SIZE; i++) {
+							mvpMat[i] = glm::mat4(0.0f);
+							mvpMat[i] = glm::mat4(0.0f);
+							mvpMat[i] = glm::mat4(0.0f);
+						}
+					}
+				*/
+			}
 
 			/*
-				if(currentBall == wave.balls.end()) {
-					for(int i = currentBall->index; i < WAVE_SIZE; i++) {
-						mvpMat[i] = glm::mat4(0.0f);
-						mvpMat[i] = glm::mat4(0.0f);
-						mvpMat[i] = glm::mat4(0.0f);
-					}
-				}
+				FOR ball in balls updatePosition
+				FOR ball in balls -> remove those in which position is outOfBound
+								  -> shift ball index
+
+				FOR ball in balls  -> update mvpMat, mMat, nMat
 			*/
+			DSSphere.map(currentImage, &uboSphere, sizeof(uboSphere), 0);
+
+			glm::mat4 World = glm::mat4(1);
+			World = World * glm::translate(glm::mat4(1), glm::vec3(-20, 0, -20)) * glm::scale(glm::mat4(1), glm::vec3(50, 1, 50));
+			uboFloor.amb = 1.0f; uboFloor.gamma = 180.0f; uboFloor.sColor = glm::vec3(1.0f);
+			uboFloor.mvpMat[0] = Prj * View * World;
+			uboFloor.mMat[0] = World;
+			uboFloor.nMat[0] = glm::inverse(glm::transpose(World));
+			DSFloor.map(currentImage, &uboFloor, sizeof(uboFloor), 0);
+			break;
+		case 1:
+			break;
 		}
-
-		/*
-			FOR ball in balls updatePosition
-			FOR ball in balls -> remove those in which position is outOfBound
-							  -> shift ball index
-
-			FOR ball in balls  -> update mvpMat, mMat, nMat
-		*/
-		DSSphere.map(currentImage, &uboSphere, sizeof(uboSphere), 0);
-
-		glm::mat4 World = glm::mat4(1);
-		World = World * glm::translate(glm::mat4(1), glm::vec3(-20,0,-20))*glm::scale(glm::mat4(1), glm::vec3(50, 1, 50));
-		uboFloor.amb = 1.0f; uboFloor.gamma = 180.0f; uboFloor.sColor = glm::vec3(1.0f);
-		uboFloor.mvpMat[0] = Prj * View * World;
-		uboFloor.mMat[0] = World;
-		uboFloor.nMat[0] = glm::inverse(glm::transpose(World));
-		DSFloor.map(currentImage, &uboFloor, sizeof(uboFloor), 0);
 	}	
 };
 
