@@ -485,29 +485,16 @@ class SlotMachine : public BaseProject {
 		std::list<Ball>::iterator currentBall;
 
 		for(currentBall = wave.balls.begin(); currentBall != wave.balls.end(); currentBall++) {
-			glm::mat4 objectWorldMatrix = currentBall->updatePosition(deltaT);
+			currentBall->updatePosition(deltaT);
+		}
+		wave.removeOutOfBoundBalls();
+		for(currentBall = wave.balls.begin(); currentBall != wave.balls.end(); currentBall++) {
+			glm::mat4 objectWorldMatrix = currentBall->getWorldMatrix();
+
 			uboSphere.mvpMat[currentBall->index] = Prj * View * objectWorldMatrix;
 			uboSphere.mMat[currentBall->index] = objectWorldMatrix;
 			uboSphere.nMat[currentBall->index] = glm::inverse(glm::transpose(objectWorldMatrix));
-
-			/*
-				if(currentBall == wave.balls.end()) {
-					for(int i = currentBall->index; i < WAVE_SIZE; i++) {
-						mvpMat[i] = glm::mat4(0.0f);
-						mvpMat[i] = glm::mat4(0.0f);
-						mvpMat[i] = glm::mat4(0.0f);
-					}
-				}
-			*/
 		}
-
-		/*
-			FOR ball in balls updatePosition
-			FOR ball in balls -> remove those in which position is outOfBound
-							  -> shift ball index
-
-			FOR ball in balls  -> update mvpMat, mMat, nMat
-		*/
 		DSSphere.map(currentImage, &uboSphere, sizeof(uboSphere), 0);
 
 		glm::mat4 World = glm::mat4(1);

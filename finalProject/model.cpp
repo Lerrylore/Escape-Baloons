@@ -56,20 +56,18 @@ class Ball {
 
             this->direction = glm::normalize(playerPosition - position);
             this->index = index;
-
-            //TODO add rotation
-            // updatePosition(playerPosition, deltaT);
-            //position must be updated outside the initializer so that the function can return a worldMatrix
         } 
 
         bool isOutsideSquare() {
             return position.x < minArea.x || position.x > maxArea.x || position.z < minArea.z || position.z > maxArea.z;
         }
         
-        glm::mat4 updatePosition(float deltaT) { //updates internal position of a ball and returns the associated worldMatrix
+        void updatePosition(float deltaT) { //updates internal position of a ball and returns the associated worldMatrix
             glm::vec3 velocity = direction * speed;
             position += velocity * deltaT;
+        }
 
+        glm::mat4 getWorldMatrix() {
             glm::mat4 worldMatrix;
 
             if(!isOutsideSquare()){
@@ -118,10 +116,12 @@ class Wave {
                         it = balls.erase(it);
                     }
                 }
-            }
 
-            /*
-                for per shiftare gli index in modo da avere 0->balls.size
-            */
+                int newIndex = 0;
+                for(it = balls.begin(); it != balls.end(); ++it) {
+                    it->index = newIndex;
+                    ++newIndex;
+                }
+            }
         }
 };
