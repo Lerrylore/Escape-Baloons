@@ -73,6 +73,7 @@ class Ball {
             glm::vec3 velocity = direction * speed/size;
             position += velocity * deltaT;
             float rotationSpeed = glm::radians(10.0f);
+        glm::mat4 getWorldMatrix() {
             glm::mat4 worldMatrix;
 
             if(!isOutsideSquare()){
@@ -121,10 +122,12 @@ class Wave {
                         it = balls.erase(it);
                     }
                 }
-            }
 
-            /*
-                for per shiftare gli index in modo da avere 0->balls.size
-            */
+                int newIndex = 0;
+                for(it = balls.begin(); it != balls.end(); ++it) {
+                    it->index = newIndex;
+                    ++newIndex;
+                }
+            }
         }
 };

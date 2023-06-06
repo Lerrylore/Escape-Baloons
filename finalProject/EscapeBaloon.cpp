@@ -497,14 +497,8 @@ class SlotMachine : public BaseProject {
 
 			
 
-			for (currentBall = wave.balls.begin(); currentBall != wave.balls.end(); currentBall++) {
-				glm::mat4 objectWorldMatrix = currentBall->updatePosition(deltaT);
-				uboSphere.mvpMat[currentBall->index] = Prj * View * objectWorldMatrix;
-				uboSphere.mMat[currentBall->index] = objectWorldMatrix;
-				uboSphere.nMat[currentBall->index] = glm::inverse(glm::transpose(objectWorldMatrix));
-				if (glm::distance(currentBall->position, Pos) <= currentBall->size) {
-					gameState = 1;
-				}
+			
+				
 
 				/*
 					if(currentBall == wave.balls.end()) {
@@ -525,6 +519,21 @@ class SlotMachine : public BaseProject {
 				FOR ball in balls  -> update mvpMat, mMat, nMat
 			*/
 			DSSphere.map(currentImage, &uboSphere, sizeof(uboSphere), 0);
+		for(currentBall = wave.balls.begin(); currentBall != wave.balls.end(); currentBall++) {
+			currentBall->updatePosition(deltaT);
+			if (glm::distance(currentBall->position, Pos) <= currentBall->size) {
+					gameState = 1;
+				}
+		}
+		wave.removeOutOfBoundBalls();
+		for(currentBall = wave.balls.begin(); currentBall != wave.balls.end(); currentBall++) {
+			glm::mat4 objectWorldMatrix = currentBall->getWorldMatrix();
+
+			uboSphere.mvpMat[currentBall->index] = Prj * View * objectWorldMatrix;
+			uboSphere.mMat[currentBall->index] = objectWorldMatrix;
+			uboSphere.nMat[currentBall->index] = glm::inverse(glm::transpose(objectWorldMatrix));
+		}
+		DSSphere.map(currentImage, &uboSphere, sizeof(uboSphere), 0);
 
 			glm::mat4 World = glm::mat4(1);
 			World = World * glm::translate(glm::mat4(1), glm::vec3(-20, 0, -20)) * glm::scale(glm::mat4(1), glm::vec3(50, 1, 50));
