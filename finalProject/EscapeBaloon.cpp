@@ -64,6 +64,7 @@ class SlotMachine : public BaseProject {
 
 	// Current aspect ratio (used by the callback that resized the window
 	float Ar;
+	bool flaggswag = false;
 
 	// Descriptor Layouts ["classes" of what will be passed to the shaders]
 	DescriptorSetLayout DSLGubo, DSLMesh, DSLOverlay;
@@ -383,7 +384,7 @@ class SlotMachine : public BaseProject {
 			auto currentTime = std::chrono::high_resolution_clock::now();
 			static auto finalTime = start;
 			gameTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - start).count(); /*TIMER IN SECONDI*/
-			auto spawnTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - finalTime).count();
+			float spawnTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - finalTime).count();
 
 			static glm::vec3 minArea = glm::vec3(-5.0f, 0.0f, -5.0f);
 			static glm::vec3 maxArea = glm::vec3(5.0f, 0.0f, 5.0f);
@@ -402,11 +403,8 @@ class SlotMachine : public BaseProject {
 			float tolerance = 0.05f; // Tolerance value for comparison
 			/* 
 			*/
-			if (std::fabs(std::fmod(gameTime, 10.0f)) < tolerance) {
-				std::cout << "new ball" << std::endl;
-				glm::vec3 positionToTrack = Pos;
-				wave.addBall(positionToTrack);
-			}
+			
+			
 
 
 			glm::mat4 WorldMatrix;
@@ -461,92 +459,105 @@ class SlotMachine : public BaseProject {
 			switch(gameState)
 			{
 			case 0:
-			
-			newPos = (oldPos * exp(-lamba * deltaT)) + Pos * (1 - exp(-lamba * deltaT));
-			oldPos = newPos;
-
-			WorldMatrix = glm::translate(glm::mat4(1.0), Pos) * glm::rotate(glm::mat4(1.0), yaw2, glm::vec3(0, 1, 0)) * glm::rotate(glm::mat4(1.0), roll, glm::vec3(0, 0, 1)) * glm::scale(glm::mat4(1.0), glm::vec3(1, 1, 1));
-
-			glm::mat4 WorldMatrixNew = glm::translate(glm::mat4(1.0), newPos) * glm::rotate(glm::mat4(1.0), yaw, glm::vec3(0, 1, 0)) * glm::rotate(glm::mat4(1.0), pitch, glm::vec3(1, 0, 0)) * glm::scale(glm::mat4(1.0), glm::vec3(1, 1, 1));
-
-			glm::mat4 Prj = glm::perspective(FOVy, Ar, nearPlane, farPlane);
-			Prj[1][1] *= -1;
-
-			glm::vec3 camTarget = glm::vec3(WorldMatrixNew * glm::vec4(0, 0, 0, 1)) + glm::vec3(0, CamH, 0);
-			glm::vec3 camPos = WorldMatrixNew * glm::vec4(0, CamH + CamD * sin(glm::radians(pitch)), CamD * cos(glm::radians(pitch)), 1);
-			glm::mat4 View = glm::lookAt(camPos, camTarget, glm::vec3(0, 1, 0));
-
-			gubo.DlightDir = glm::normalize((Pos + glm::vec3(0, 5, 0)) - Pos);
-			gubo.DlightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			gubo.eyePos = camPos;
-			gubo.lightPos = Pos + glm::vec3(0, 5, 0.0f);
-			
-			gubo.cosout = 0.70f + constant;
-			gubo.cosin = 0.75 + constant;
-
-			// Writes value to the GPU
-			DSGubo.map(currentImage, &gubo, sizeof(gubo), 0);
-			// the .map() method of a DataSet object, requires the current image of the swap chain as first parameter
-			// the second parameter is the pointer to the C++ data structure to transfer to the GPU
-			// the third parameter is its size
-			// the fourth parameter is the location inside the descriptor set of this uniform block
-
-			uboCharacter.amb = 1.0f; uboCharacter.gamma = 180.0f; uboCharacter.sColor = glm::vec3(1.0f);
-			uboCharacter.mvpMat[0] = Prj * View * WorldMatrix;
-			uboCharacter.mMat[0] = WorldMatrix;
-			uboCharacter.nMat[0] = glm::inverse(glm::transpose(WorldMatrix));
-			DSCharacter.map(currentImage, &uboCharacter, sizeof(uboCharacter), 0);
-				/*
-					if(currentBall == wave.balls.end()) {
-						for(int i = currentBall->index; i < WAVE_SIZE; i++) {
-							mvpMat[i] = glm::mat4(0.0f);
-							mvpMat[i] = glm::mat4(0.0f);
-							mvpMat[i] = glm::mat4(0.0f);
-						}
-					}
-				*/
-
-			/*
-				FOR ball in balls updatePosition
-				FOR ball in balls -> remove those in which position is outOfBound
-								  -> shift ball index
-
-				FOR ball in balls  -> update mvpMat, mMat, nMat
-			*/
-			for(currentBall = wave.balls.begin(); currentBall != wave.balls.end(); currentBall++) {
-				currentBall->updatePosition(deltaT);
-				if (glm::distance(currentBall->position - glm::vec3(0.0f, currentBall->size, 0.0f), Pos) <= currentBall->size) {
-						gameState = 1;
-						
+				if (spawnTime >= 1.0f || !flaggswag) {
+				glm::vec3 positionToTrack = Pos;
+				wave.addBall(positionToTrack);
+				finalTime = currentTime;
+				flaggswag = true;
 				}
-			}
-			wave.removeOutOfBoundBalls();
-		
-			for(currentBall = wave.balls.begin(); currentBall != wave.balls.end(); currentBall++) {
-				glm::mat4 objectWorldMatrix = currentBall->getWorldMatrix();
-				uboSphere.mvpMat[currentBall->index] = Prj * View * objectWorldMatrix;
-				uboSphere.mMat[currentBall->index] = objectWorldMatrix;
-				uboSphere.nMat[currentBall->index] = glm::inverse(glm::transpose(objectWorldMatrix));
-				tempBall = currentBall;	
-			}
-			for (int i = tempBall->index; i < WAVE_SIZE; i++) {
-					glm::mat4 nullMatrix = glm::mat4(0.0f);
-					uboSphere.mvpMat[i] = nullMatrix;
-					uboSphere.mMat[i] = nullMatrix;
-					uboSphere.nMat[i] = glm::inverse(glm::transpose(nullMatrix));
-			}
+				newPos = (oldPos * exp(-lamba * deltaT)) + Pos * (1 - exp(-lamba * deltaT));
+				oldPos = newPos;
+
+				WorldMatrix = glm::translate(glm::mat4(1.0), Pos) * glm::rotate(glm::mat4(1.0), yaw2, glm::vec3(0, 1, 0)) * glm::rotate(glm::mat4(1.0), roll, glm::vec3(0, 0, 1)) * glm::scale(glm::mat4(1.0), glm::vec3(1, 1, 1));
+
+				glm::mat4 WorldMatrixNew = glm::translate(glm::mat4(1.0), newPos) * glm::rotate(glm::mat4(1.0), yaw, glm::vec3(0, 1, 0)) * glm::rotate(glm::mat4(1.0), pitch, glm::vec3(1, 0, 0)) * glm::scale(glm::mat4(1.0), glm::vec3(1, 1, 1));
+
+				glm::mat4 Prj = glm::perspective(FOVy, Ar, nearPlane, farPlane);
+				Prj[1][1] *= -1;
+
+				glm::vec3 camTarget = glm::vec3(WorldMatrixNew * glm::vec4(0, 0, 0, 1)) + glm::vec3(0, CamH, 0);
+				glm::vec3 camPos = WorldMatrixNew * glm::vec4(0, CamH + CamD * sin(glm::radians(pitch)), CamD * cos(glm::radians(pitch)), 1);
+				glm::mat4 View = glm::lookAt(camPos, camTarget, glm::vec3(0, 1, 0));
+
+				gubo.DlightDir = glm::normalize((Pos + glm::vec3(0, 5, 0)) - Pos);
+				gubo.DlightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+				gubo.eyePos = camPos;
+				gubo.lightPos = Pos + glm::vec3(0, 5, 0.0f);
+			
+				gubo.cosout = 0.70f + constant;
+				gubo.cosin = 0.75 + constant;
+
+				// Writes value to the GPU
+				DSGubo.map(currentImage, &gubo, sizeof(gubo), 0);
+				// the .map() method of a DataSet object, requires the current image of the swap chain as first parameter
+				// the second parameter is the pointer to the C++ data structure to transfer to the GPU
+				// the third parameter is its size
+				// the fourth parameter is the location inside the descriptor set of this uniform block
+
+				uboCharacter.amb = 1.0f; uboCharacter.gamma = 180.0f; uboCharacter.sColor = glm::vec3(1.0f);
+				uboCharacter.mvpMat[0] = Prj * View * WorldMatrix;
+				uboCharacter.mMat[0] = WorldMatrix;
+				uboCharacter.nMat[0] = glm::inverse(glm::transpose(WorldMatrix));
+				DSCharacter.map(currentImage, &uboCharacter, sizeof(uboCharacter), 0);
+					/*
+						if(currentBall == wave.balls.end()) {
+							for(int i = currentBall->index; i < WAVE_SIZE; i++) {
+								mvpMat[i] = glm::mat4(0.0f);
+								mvpMat[i] = glm::mat4(0.0f);
+								mvpMat[i] = glm::mat4(0.0f);
+							}
+						}
+					*/
+
+				/*
+					FOR ball in balls updatePosition
+					FOR ball in balls -> remove those in which position is outOfBound
+									  -> shift ball index
+
+					FOR ball in balls  -> update mvpMat, mMat, nMat
+				*/
+				for(currentBall = wave.balls.begin(); currentBall != wave.balls.end(); currentBall++) {
+					currentBall->updatePosition(deltaT);
+					if (glm::distance(currentBall->position - glm::vec3(0.0f, currentBall->size, 0.0f), Pos) <= currentBall->size) {
+							gameState = 1;
+						
+					}
+				}
+				wave.removeOutOfBoundBalls();
+				if (wave.balls.size() != 0){
+					for (currentBall = wave.balls.begin(); currentBall != wave.balls.end(); currentBall++) {
+						glm::mat4 objectWorldMatrix = currentBall->getWorldMatrix();
+						uboSphere.mvpMat[currentBall->index] = Prj * View * objectWorldMatrix;
+						uboSphere.mMat[currentBall->index] = objectWorldMatrix;
+						uboSphere.nMat[currentBall->index] = glm::inverse(glm::transpose(objectWorldMatrix));
+						tempBall = currentBall;
+					}
+					for (int i = tempBall->index + 1; i < WAVE_SIZE; i++) {
+						glm::mat4 nullMatrix = glm::mat4(0.0f);
+						uboSphere.mvpMat[i] = nullMatrix;
+						uboSphere.mMat[i] = nullMatrix;
+						uboSphere.nMat[i] = glm::inverse(glm::transpose(nullMatrix));
+					}
+				}else {
+					for (int i = 0; i < WAVE_SIZE; i++) {
+						glm::mat4 nullMatrix = glm::mat4(0.0f);
+						uboSphere.mvpMat[i] = nullMatrix;
+						uboSphere.mMat[i] = nullMatrix;
+						uboSphere.nMat[i] = glm::inverse(glm::transpose(nullMatrix));
+					}
+				}
 				
 			
-			DSSphere.map(currentImage, &uboSphere, sizeof(uboSphere), 0);
+				DSSphere.map(currentImage, &uboSphere, sizeof(uboSphere), 0);
 
-			glm::mat4 World = glm::mat4(1);
-			World = World * glm::translate(glm::mat4(1), glm::vec3(-20, 0, -20)) * glm::scale(glm::mat4(1), glm::vec3(50, 1, 50));
-			uboFloor.amb = 1.0f; uboFloor.gamma = 180.0f; uboFloor.sColor = glm::vec3(1.0f);
-			uboFloor.mvpMat[0] = Prj * View * World;
-			uboFloor.mMat[0] = World;
-			uboFloor.nMat[0] = glm::inverse(glm::transpose(World));
-			DSFloor.map(currentImage, &uboFloor, sizeof(uboFloor), 0);
-			break;
+				glm::mat4 World = glm::mat4(1);
+				World = World * glm::translate(glm::mat4(1), glm::vec3(-20, 0, -20)) * glm::scale(glm::mat4(1), glm::vec3(50, 1, 50));
+				uboFloor.amb = 1.0f; uboFloor.gamma = 180.0f; uboFloor.sColor = glm::vec3(1.0f);
+				uboFloor.mvpMat[0] = Prj * View * World;
+				uboFloor.mMat[0] = World;
+				uboFloor.nMat[0] = glm::inverse(glm::transpose(World));
+				DSFloor.map(currentImage, &uboFloor, sizeof(uboFloor), 0);
+				break;
 			case 1:
 				break;
 		}

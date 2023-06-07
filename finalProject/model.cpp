@@ -29,7 +29,7 @@ private:
     glm::vec3 maxArea = glm::vec3(5.0f, 0.0f, 5.0f);
 
 public:
-    float size = random(0.1f, 1.0f);
+    float size = random(0.2f, 1.0f);
     glm::vec3 position = glm::vec3(0.0f);
     glm::vec3 direction = glm::vec3(0.0f);
     glm::vec3 rotation = glm::vec3(0.0f);
@@ -114,6 +114,7 @@ class Wave {
 
         void addBall(glm::vec3 playerPosition) {
             if(balls.size() <= waveSize) balls.push_back(Ball(playerPosition, speed, balls.size()));
+            std::cout << "adding: " << balls.size() << std::endl;
         }
 
         void removeOutOfBoundBalls() {
@@ -121,9 +122,9 @@ class Wave {
             if(waveSize >= 1) {
                 for (it = balls.begin(); it != balls.end(); ++it){
                     if(isOutsideSquare(it->position)) {
-                        std::cout << "deleting..." << std::endl;
+                        std::cout << "deleting..."<< it->index << std::endl;
                         it = balls.erase(it);
-                        if (it == balls.end()) {
+                        if (balls.empty()) {
                             break;
                         }
                     }
