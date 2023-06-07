@@ -381,7 +381,9 @@ class SlotMachine : public BaseProject {
 
 			static auto start = std::chrono::high_resolution_clock::now();
 			auto currentTime = std::chrono::high_resolution_clock::now();
+			static auto finalTime = start;
 			gameTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - start).count(); /*TIMER IN SECONDI*/
+			auto spawnTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - finalTime).count();
 
 			static glm::vec3 minArea = glm::vec3(-5.0f, 0.0f, -5.0f);
 			static glm::vec3 maxArea = glm::vec3(5.0f, 0.0f, 5.0f);
@@ -391,21 +393,21 @@ class SlotMachine : public BaseProject {
 			static Wave wave = Wave(10, 1.0f, minArea, maxArea);
 			//static Ball ball = Ball(StartingPosition, deltaT);
 
-
+			std::list<Ball>::iterator tempBall;
 			// Parameters: wheels and handle speed and range
 			static glm::vec3 Pos = StartingPosition;
 			static glm::vec3 newPos;
 			static glm::vec3 oldPos = Pos;
 
 			float tolerance = 0.05f; // Tolerance value for comparison
-
-			if (std::fabs(std::fmod(gameTime, 5.0f)) < tolerance) {
+			/* 
+			*/
+			if (std::fabs(std::fmod(gameTime, 10.0f)) < tolerance) {
 				std::cout << "new ball" << std::endl;
 				glm::vec3 positionToTrack = Pos;
 				wave.addBall(positionToTrack);
 			}
 
-			wave.removeOutOfBoundBalls();
 
 			glm::mat4 WorldMatrix;
 
@@ -494,12 +496,6 @@ class SlotMachine : public BaseProject {
 			uboCharacter.mMat[0] = WorldMatrix;
 			uboCharacter.nMat[0] = glm::inverse(glm::transpose(WorldMatrix));
 			DSCharacter.map(currentImage, &uboCharacter, sizeof(uboCharacter), 0);
-
-			
-
-			
-				
-
 				/*
 					if(currentBall == wave.balls.end()) {
 						for(int i = currentBall->index; i < WAVE_SIZE; i++) {
@@ -509,7 +505,6 @@ class SlotMachine : public BaseProject {
 						}
 					}
 				*/
-			}
 
 			/*
 				FOR ball in balls updatePosition
@@ -518,22 +513,31 @@ class SlotMachine : public BaseProject {
 
 				FOR ball in balls  -> update mvpMat, mMat, nMat
 			*/
-			DSSphere.map(currentImage, &uboSphere, sizeof(uboSphere), 0);
-		for(currentBall = wave.balls.begin(); currentBall != wave.balls.end(); currentBall++) {
-			currentBall->updatePosition(deltaT);
-			if (glm::distance(currentBall->position, Pos) <= currentBall->size) {
-					gameState = 1;
+			for(currentBall = wave.balls.begin(); currentBall != wave.balls.end(); currentBall++) {
+				currentBall->updatePosition(deltaT);
+				if (glm::distance(currentBall->position - glm::vec3(0.0f, currentBall->size, 0.0f), Pos) <= currentBall->size) {
+						gameState = 1;
+						
 				}
-		}
-		wave.removeOutOfBoundBalls();
-		for(currentBall = wave.balls.begin(); currentBall != wave.balls.end(); currentBall++) {
-			glm::mat4 objectWorldMatrix = currentBall->getWorldMatrix();
-
-			uboSphere.mvpMat[currentBall->index] = Prj * View * objectWorldMatrix;
-			uboSphere.mMat[currentBall->index] = objectWorldMatrix;
-			uboSphere.nMat[currentBall->index] = glm::inverse(glm::transpose(objectWorldMatrix));
-		}
-		DSSphere.map(currentImage, &uboSphere, sizeof(uboSphere), 0);
+			}
+			wave.removeOutOfBoundBalls();
+		
+			for(currentBall = wave.balls.begin(); currentBall != wave.balls.end(); currentBall++) {
+				glm::mat4 objectWorldMatrix = currentBall->getWorldMatrix();
+				uboSphere.mvpMat[currentBall->index] = Prj * View * objectWorldMatrix;
+				uboSphere.mMat[currentBall->index] = objectWorldMatrix;
+				uboSphere.nMat[currentBall->index] = glm::inverse(glm::transpose(objectWorldMatrix));
+				tempBall = currentBall;	
+			}
+			for (int i = tempBall->index; i < WAVE_SIZE; i++) {
+					glm::mat4 nullMatrix = glm::mat4(0.0f);
+					uboSphere.mvpMat[i] = nullMatrix;
+					uboSphere.mMat[i] = nullMatrix;
+					uboSphere.nMat[i] = glm::inverse(glm::transpose(nullMatrix));
+			}
+				
+			
+			DSSphere.map(currentImage, &uboSphere, sizeof(uboSphere), 0);
 
 			glm::mat4 World = glm::mat4(1);
 			World = World * glm::translate(glm::mat4(1), glm::vec3(-20, 0, -20)) * glm::scale(glm::mat4(1), glm::vec3(50, 1, 50));
@@ -543,8 +547,8 @@ class SlotMachine : public BaseProject {
 			uboFloor.nMat[0] = glm::inverse(glm::transpose(World));
 			DSFloor.map(currentImage, &uboFloor, sizeof(uboFloor), 0);
 			break;
-		case 1:
-			break;
+			case 1:
+				break;
 		}
 	}	
 };
