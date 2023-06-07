@@ -518,7 +518,7 @@ class SlotMachine : public BaseProject {
 				*/
 				for(currentBall = wave.balls.begin(); currentBall != wave.balls.end(); currentBall++) {
 					currentBall->updatePosition(deltaT);
-					if (glm::distance(currentBall->position - glm::vec3(0.0f, currentBall->size, 0.0f), Pos) <= currentBall->size) {
+					if (glm::distance(currentBall->position - glm::vec3(0.0f, currentBall->size, 0.0f), Pos) <= currentBall->size || gameTime > 120.0f) {
 							gameState = 1;
 						
 					}
