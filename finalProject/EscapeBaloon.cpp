@@ -214,7 +214,7 @@ class SlotMachine : public BaseProject {
 		// The second parameter is the file name
 		TCharacter.init(this,   "textures/red_Base_Color.png");
 		TFloor.init(this, "textures/floor.jpg");
-		TSphere.init(this, "textures/Grass_07_basecolor.png");
+		TSphere.init(this, "textures/alien.png");
 		
 		// Init local variables
 		CamH = 1.0f;
@@ -547,7 +547,6 @@ class SlotMachine : public BaseProject {
 					}
 				}
 				
-			
 				DSSphere.map(currentImage, &uboSphere, sizeof(uboSphere), 0);
 
 				glm::mat4 World = glm::mat4(1);

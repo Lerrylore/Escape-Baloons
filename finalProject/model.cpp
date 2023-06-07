@@ -33,6 +33,7 @@ public:
     glm::vec3 position = glm::vec3(0.0f);
     glm::vec3 direction = glm::vec3(0.0f);
     glm::vec3 rotation = glm::vec3(0.0f);
+    float rot = 0.0f;
 
     int index;
 
@@ -73,13 +74,19 @@ public:
         glm::vec3 velocity = direction * speed / size;
         position += velocity * deltaT;
         rotation += deltaT * velocity / size;
+        rot += deltaT * speed / size;
     }
     glm::mat4 getWorldMatrix() {
         glm::mat4 worldMatrix;
         glm::vec3 perpDirection = glm::cross(direction, glm::vec3(0.0f, 1.0f, 0.0f));
-        glm::mat4 r52 = glm::rotate(glm::mat4(1), glm::radians(30.0f), glm::vec3(0, 1, 0));
+        float angle = acos(glm::dot(perpDirection, glm::vec3(1.0f, 0.0f, 0.0f)) / (glm::length(perpDirection) * glm::length(glm::vec3(1.0f, 0.0f, 0.0f))));
+        if (perpDirection.z > 0.0f) {
+            angle = glm::radians(360 - glm::degrees(angle));
+        }
+        glm::mat4 r52 = glm::rotate(glm::mat4(1), angle, glm::vec3(0, 1, 0));
+        glm::mat4 r51 = glm::rotate(glm::mat4(1), -rot, glm::vec3(1, 0, 0));
         if (!isOutsideSquare()) {
-            worldMatrix = glm::translate(glm::mat4(1.0), position) * glm::scale(glm::mat4(1.0), glm::vec3(size));
+            worldMatrix = glm::translate(glm::mat4(1.0), position) * r52 * r51 * inverse(r52) * glm::scale(glm::mat4(1.0), glm::vec3(size));
         }
         else {
             worldMatrix = glm::mat4(0.0f);

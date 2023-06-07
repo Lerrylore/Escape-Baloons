@@ -21,7 +21,7 @@ layout(set = 0, binding = 0) uniform GlobalUniformBufferObject {
 
 
 layout(set = 1, binding = 1) uniform sampler2D tex;
-const float beta = 2.0f;
+const float beta = 1.5f;
 const float g = 2.5f;
 
 
@@ -43,7 +43,7 @@ void main() {
 	vec3 lightColor =  gubo.DlightColor * pow(g/length(temp), beta)  * clamp((dot(lightDir,gubo.DlightDir) - cosout)/(cosin-cosout), 0.0, 1.0);
 
 	vec3 Diffuse = texture(tex, fragUV).rgb * 0.99f * clamp(dot(Norm, lightDir),0.0,1.0);
-	vec3 Specular = vec3(pow(clamp(dot(Norm, normalize(lightDir + EyeDir)),0.0,1.0), 160.0f));
+	vec3 Specular = vec3(pow(clamp(dot(Norm, normalize(lightDir + EyeDir)),0.0,1.0), 175.0f));
 	vec3 Ambient = texture(tex, fragUV).rgb * 0.01f;
 	
 	outColor = vec4(clamp((Diffuse + Specular) * lightColor.rgb + Ambient,0.0,1.0), 1.0f);
