@@ -52,6 +52,12 @@ struct VertexOverlay {
 	glm::vec2 UV;
 };
 
+struct MeshCounters {
+	int alien = 0;
+	int opal = 0;
+	int knit = 0;
+	int shatter = 0;
+};
 
 
 float gameTime;
@@ -81,18 +87,18 @@ class SlotMachine : public BaseProject {
 	// Please note that Model objects depends on the corresponding vertex structure
 	Model<VertexMesh> MCharacter, MFloor, MSphere;
 	Model<VertexOverlay> MKey, MSplash;
-	DescriptorSet DSGubo, DSCharacter, DSSphere, DSBall, DSFloor;
-	Texture TCharacter, TFloor, TSphere;
+	DescriptorSet DSGubo, DSCharacter, DSSphere1, DSSphere2, DSSphere3, DSSphere4, DSBall, DSFloor;
+	Texture TCharacter, TFloor, TSphere1, TSphere2, TSphere3, TSphere4;
 	
 	// C++ storage for uniform variables
-	MeshUniformBlock uboCharacter, uboFloor, uboSphere;
+	MeshUniformBlock uboCharacter, uboFloor, uboSphere1, uboSphere2, uboSphere3, uboSphere4;
 	GlobalUniformBlock gubo;
 	OverlayUniformBlock uboKey, uboSplash;
 
 
-
 	// Other application parameters
 	float CamH, CamRadius, CamPitch, CamYaw;
+	MeshCounters meshCounters;
 	int gameState;
 
 
@@ -214,7 +220,10 @@ class SlotMachine : public BaseProject {
 		// The second parameter is the file name
 		TCharacter.init(this,   "textures/red_Base_Color.png");
 		TFloor.init(this, "textures/floor.jpg");
-		TSphere.init(this, "textures/alien.png");
+		TSphere1.init(this, "textures/alien.png");
+		TSphere2.init(this, "textures/opal.jpeg");
+		TSphere3.init(this, "textures/knit.jpeg");
+		TSphere4.init(this, "textures/shatter.png");
 		
 		// Init local variables
 		CamH = 1.0f;
@@ -244,9 +253,21 @@ class SlotMachine : public BaseProject {
 					{1, TEXTURE, 0, &TCharacter}
 				});
 
-		DSSphere.init(this, &DSLMesh, {
+		DSSphere1.init(this, &DSLMesh, {
 			{0, UNIFORM, sizeof(MeshUniformBlock), nullptr},
-			{1, TEXTURE, 0, &TSphere}
+			{1, TEXTURE, 0, &TSphere1}
+		});
+		DSSphere2.init(this, &DSLMesh, {
+			{0, UNIFORM, sizeof(MeshUniformBlock), nullptr},
+			{1, TEXTURE, 0, &TSphere2}
+		});
+		DSSphere3.init(this, &DSLMesh, {
+			{0, UNIFORM, sizeof(MeshUniformBlock), nullptr},
+			{1, TEXTURE, 0, &TSphere3}
+		});
+		DSSphere4.init(this, &DSLMesh, {
+			{0, UNIFORM, sizeof(MeshUniformBlock), nullptr},
+			{1, TEXTURE, 0, &TSphere4}
 		});
 		DSFloor.init(this, &DSLMesh, {
 					{0, UNIFORM, sizeof(MeshUniformBlock), nullptr},
@@ -268,7 +289,10 @@ class SlotMachine : public BaseProject {
 
 		// Cleanup datasets
 		DSCharacter.cleanup();
-		DSSphere.cleanup();
+		DSSphere1.cleanup();
+		DSSphere2.cleanup();
+		DSSphere3.cleanup();
+		DSSphere4.cleanup();
 		DSFloor.cleanup();
 
 		DSGubo.cleanup();
@@ -284,7 +308,10 @@ class SlotMachine : public BaseProject {
 		// Cleanup textures
 		TCharacter.cleanup();
 		TFloor.cleanup();
-		TSphere.cleanup();
+		TSphere1.cleanup();
+		TSphere2.cleanup();
+		TSphere3.cleanup();
+		TSphere4.cleanup();
 
 		
 		// Cleanup models
@@ -341,7 +368,13 @@ class SlotMachine : public BaseProject {
 			// the second parameter is the number of indexes to be drawn. For a Model object,
 			// this can be retrieved with the .indices.size() method.
 			MSphere.bind(commandBuffer);
-			DSSphere.bind(commandBuffer, PMesh, 1, currentImage);
+			DSSphere1.bind(commandBuffer, PMesh, 1, currentImage);
+			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphere.indices.size()), WAVE_SIZE, 0, 0, 0);
+			DSSphere2.bind(commandBuffer, PMesh, 1, currentImage);
+			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphere.indices.size()), WAVE_SIZE, 0, 0, 0);
+			DSSphere3.bind(commandBuffer, PMesh, 1, currentImage);
+			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphere.indices.size()), WAVE_SIZE, 0, 0, 0);
+			DSSphere4.bind(commandBuffer, PMesh, 1, currentImage);
 			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphere.indices.size()), WAVE_SIZE, 0, 0, 0);
 
 			MFloor.bind(commandBuffer);
@@ -354,6 +387,26 @@ class SlotMachine : public BaseProject {
 		}
 
 
+	}
+
+	void initialiseCounters() {
+		meshCounters.alien = 0;
+		meshCounters.opal = 0;
+		meshCounters.knit = 0;
+		meshCounters.shatter = 0;
+	}
+	void clearUbo(MeshUniformBlock* ubo, int from) {
+		for (int i = from; i < WAVE_SIZE; i++) {
+			glm::mat4 nullMatrix = glm::mat4(0.0f);
+			ubo->mvpMat[i] = nullMatrix;
+			ubo->mMat[i] = nullMatrix;
+			ubo->nMat[i] = glm::inverse(glm::transpose(nullMatrix));
+		}
+	}
+	void updateUbo(MeshUniformBlock* ubo, int counter, glm::mat4 objectWorldMatrix, glm::mat4 Prj, glm::mat4 View) {
+		ubo->mvpMat[counter] = Prj * View * objectWorldMatrix;
+		ubo->mMat[counter] = objectWorldMatrix;
+		ubo->nMat[counter] = glm::inverse(glm::transpose(objectWorldMatrix));
 	}
 
 	// Here is where you update the uniforms.
@@ -524,30 +577,44 @@ class SlotMachine : public BaseProject {
 					}
 				}
 				wave.removeOutOfBoundBalls();
+				initialiseCounters();
 				if (wave.balls.size() != 0){
 					for (currentBall = wave.balls.begin(); currentBall != wave.balls.end(); currentBall++) {
-						glm::mat4 objectWorldMatrix = currentBall->getWorldMatrix();
-						uboSphere.mvpMat[currentBall->index] = Prj * View * objectWorldMatrix;
-						uboSphere.mMat[currentBall->index] = objectWorldMatrix;
-						uboSphere.nMat[currentBall->index] = glm::inverse(glm::transpose(objectWorldMatrix));
-						tempBall = currentBall;
+						switch (currentBall->type) {
+							case alien: {
+								updateUbo(&uboSphere1, meshCounters.alien, currentBall->getWorldMatrix(), Prj, View);
+								meshCounters.alien++;
+							}
+							case opal: {
+								updateUbo(&uboSphere2, meshCounters.opal, currentBall->getWorldMatrix(), Prj, View);
+								meshCounters.opal++;
+							}
+							case knit: {
+								updateUbo(&uboSphere3, meshCounters.knit, currentBall->getWorldMatrix(), Prj, View);
+								meshCounters.knit++;
+							}
+							case shatter: {
+								updateUbo(&uboSphere4, meshCounters.shatter, currentBall->getWorldMatrix(), Prj, View);
+								meshCounters.shatter++;
+							}
+						}
+
 					}
-					for (int i = tempBall->index + 1; i < WAVE_SIZE; i++) {
-						glm::mat4 nullMatrix = glm::mat4(0.0f);
-						uboSphere.mvpMat[i] = nullMatrix;
-						uboSphere.mMat[i] = nullMatrix;
-						uboSphere.nMat[i] = glm::inverse(glm::transpose(nullMatrix));
-					}
-				}else {
-					for (int i = 0; i < WAVE_SIZE; i++) {
-						glm::mat4 nullMatrix = glm::mat4(0.0f);
-						uboSphere.mvpMat[i] = nullMatrix;
-						uboSphere.mMat[i] = nullMatrix;
-						uboSphere.nMat[i] = glm::inverse(glm::transpose(nullMatrix));
-					}
+					clearUbo(&uboSphere1, meshCounters.alien);
+					clearUbo(&uboSphere2, meshCounters.opal);
+					clearUbo(&uboSphere3, meshCounters.knit);
+					clearUbo(&uboSphere4, meshCounters.shatter);
+				} else {
+					clearUbo(&uboSphere1, 0);
+					clearUbo(&uboSphere2, 0);
+					clearUbo(&uboSphere3, 0);
+					clearUbo(&uboSphere4, 0);
 				}
 				
-				DSSphere.map(currentImage, &uboSphere, sizeof(uboSphere), 0);
+				DSSphere1.map(currentImage, &uboSphere1, sizeof(uboSphere1), 0);
+				DSSphere2.map(currentImage, &uboSphere2, sizeof(uboSphere2), 0);
+				DSSphere3.map(currentImage, &uboSphere3, sizeof(uboSphere3), 0);
+				DSSphere4.map(currentImage, &uboSphere4, sizeof(uboSphere4), 0);
 
 				glm::mat4 World = glm::mat4(1);
 				World = World * glm::translate(glm::mat4(1), glm::vec3(-20, 0, -20)) * glm::scale(glm::mat4(1), glm::vec3(50, 1, 50));

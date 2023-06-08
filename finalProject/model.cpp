@@ -21,6 +21,8 @@ T random(T range_from, T range_to) {
     return dis(gen);
 }
 
+enum Type : int { alien = 1, opal = 2, knit = 3, shatter = 4};
+
 class Ball {
 private:
     enum Side : int { up = 1, down = 2, left = 3, right = 4 };
@@ -34,10 +36,11 @@ public:
     glm::vec3 direction = glm::vec3(0.0f);
     glm::vec3 rotation = glm::vec3(0.0f);
     float rot = 0.0f;
+    Type type;
 
     int index;
 
-    Ball(glm::vec3 playerPosition, float speed, int index) {
+    Ball(glm::vec3 playerPosition, float speed, int index, int type) {
         //it would be best to use the template above, but the function is throwing a floating point exception :/
         int choice = 1 + (rand() % 4); //rand() is considered to be the worst choice for a random num generator lol
         Side side = static_cast<Side>(choice);
@@ -60,6 +63,8 @@ public:
         this->direction = glm::normalize(playerPosition - position);
         this->index = index;
         this->position += glm::vec3(0.0f, size, 0.0f);
+
+        this->type = static_cast<Type>(type);
 
         //TODO add rotation
         // updatePosition(playerPosition, deltaT);
@@ -120,7 +125,10 @@ class Wave {
         }
 
         void addBall(glm::vec3 playerPosition) {
-            if(balls.size() <= waveSize) balls.push_back(Ball(playerPosition, speed, balls.size()));
+            if(balls.size() <= waveSize) {
+                int type = 1 + (rand() % 4);
+                balls.push_back(Ball(playerPosition, speed, balls.size(), type));
+            }
             std::cout << "adding: " << balls.size() << std::endl;
         }
 
