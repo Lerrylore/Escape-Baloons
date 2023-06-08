@@ -80,14 +80,14 @@ class SlotMachine : public BaseProject {
 	// Models, textures and Descriptors (values assigned to the uniforms)
 	// Please note that Model objects depends on the corresponding vertex structure
 	Model<VertexMesh> MCharacter, MFloor, MSphere;
-	Model<VertexOverlay> MKey, MSplash;
-	DescriptorSet DSGubo, DSCharacter, DSSphere, DSBall, DSFloor;
-	Texture TCharacter, TFloor, TSphere;
+	Model<VertexOverlay> MKey, MSplash, MGameOver;
+	DescriptorSet DSGubo, DSCharacter, DSSphere, DSBall, DSFloor, DSGameOver;
+	Texture TCharacter, TFloor, TSphere, TGameOver;
 	
 	// C++ storage for uniform variables
 	MeshUniformBlock uboCharacter, uboFloor, uboSphere;
 	GlobalUniformBlock gubo;
-	OverlayUniformBlock uboKey, uboSplash;
+	OverlayUniformBlock uboKey, uboSplash, uboGameOver;
 
 
 
@@ -106,9 +106,9 @@ class SlotMachine : public BaseProject {
 		initialBackgroundColor = {0.0f, 0.005f, 0.01f, 1.0f};
 		
 		// Descriptor pool sizes
-		uniformBlocksInPool = 15;
-		texturesInPool = 15;
-		setsInPool = 15;
+		uniformBlocksInPool = 20;
+		texturesInPool = 20;
+		setsInPool = 20;
 		
 		Ar = (float)windowWidth / (float)windowHeight;
 	}
@@ -209,12 +209,19 @@ class SlotMachine : public BaseProject {
 		// Creates a mesh with direct enumeration of vertices and indices
 		MFloor.init(this, &VMesh, "Models/floor.obj", OBJ);
 		MSphere.init(this, &VMesh, "Models/Sphere.obj", OBJ);
+
+		MGameOver.vertices = {{{-1.0f, -1.0f}, {0.0f, 0.0f}}, {{-1.0f, 1.0f}, {0.0f,1.0f}},
+						 {{ 1.0f,-1.0f}, {1.0f,0.0f}}, {{ 1.0f, 1.0f}, {1.0f,1.0f}}};
+		MGameOver.indices = {0, 1, 2,    1, 2, 3};
+		MGameOver.initMesh(this, &VOverlay);
+
 		
 		// Create the textures
 		// The second parameter is the file name
 		TCharacter.init(this,   "textures/red_Base_Color.png");
 		TFloor.init(this, "textures/floor.jpg");
 		TSphere.init(this, "textures/alien.png");
+		TGameOver.init(this, "textures/GameOver.png");
 		
 		// Init local variables
 		CamH = 1.0f;
@@ -255,6 +262,10 @@ class SlotMachine : public BaseProject {
 		DSGubo.init(this, &DSLGubo, {
 					{0, UNIFORM, sizeof(GlobalUniformBlock), nullptr}
 				});
+		DSGameOver.init(this, &DSLMesh, {
+					{0, UNIFORM, sizeof(OverlayUniformBlock), nullptr},
+					{1, TEXTURE, 0, &TGameOver}
+				});
 
 
 	}
@@ -270,8 +281,10 @@ class SlotMachine : public BaseProject {
 		DSCharacter.cleanup();
 		DSSphere.cleanup();
 		DSFloor.cleanup();
+		DSBall.cleanup();
 
 		DSGubo.cleanup();
+		DSGameOver.cleanup();
 
 
 	}
@@ -285,6 +298,7 @@ class SlotMachine : public BaseProject {
 		TCharacter.cleanup();
 		TFloor.cleanup();
 		TSphere.cleanup();
+		TGameOver.cleanup();
 
 		
 		// Cleanup models
@@ -293,7 +307,7 @@ class SlotMachine : public BaseProject {
 		MKey.cleanup();
 		MSplash.cleanup();
 		MSphere.cleanup();
-		
+		MGameOver.cleanup();
 		// Cleanup descriptor set layouts
 		DSLMesh.cleanup();
 		DSLOverlay.cleanup();
@@ -312,8 +326,7 @@ class SlotMachine : public BaseProject {
 	// with their buffers and textures
 	
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage) {
-		switch(gameState)
-		{
+		switch(gameState){
 		case 0:
 			// sets global uniforms (see below fro parameters explanation)
 			DSGubo.bind(commandBuffer, PMesh, 0, currentImage);
@@ -350,9 +363,16 @@ class SlotMachine : public BaseProject {
 				static_cast<uint32_t>(MFloor.indices.size()), 1, 0, 0, 0);
 			break;
 		case 1:
+			// sets global uniforms (see below fro parameters explanation)
+			
+			
 			break;
 		}
-
+		POverlay.bind(commandBuffer);
+			MGameOver.bind(commandBuffer);
+			DSGameOver.bind(commandBuffer, POverlay, 0, currentImage);
+			vkCmdDrawIndexed(commandBuffer,
+			static_cast<uint32_t>(MGameOver.indices.size()), 1, 0, 0, 0);
 
 	}
 
@@ -385,7 +405,7 @@ class SlotMachine : public BaseProject {
 			static auto finalTime = start;
 			gameTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - start).count(); /*TIMER IN SECONDI*/
 			float spawnTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - finalTime).count();
-
+			
 			static glm::vec3 minArea = glm::vec3(-5.0f, 0.0f, -5.0f);
 			static glm::vec3 maxArea = glm::vec3(5.0f, 0.0f, 5.0f);
 
@@ -403,8 +423,6 @@ class SlotMachine : public BaseProject {
 			float tolerance = 0.05f; // Tolerance value for comparison
 			/* 
 			*/
-			
-			
 
 
 			glm::mat4 WorldMatrix;
@@ -481,11 +499,17 @@ class SlotMachine : public BaseProject {
 
 				gubo.DlightDir = glm::normalize((Pos + glm::vec3(0, 5, 0)) - Pos);
 				gubo.DlightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+				if (gameTime > 110 && (int)(gameTime-110)%2 == 0) {
+					gubo.DlightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+				}
+				if (gameTime > 110 && (int)(gameTime-110)%2 == 1) {
+					gubo.DlightColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+				}
 				gubo.eyePos = camPos;
 				gubo.lightPos = Pos + glm::vec3(0, 5, 0.0f);
 			
-				gubo.cosout = 0.70f + constant;
-				gubo.cosin = 0.75 + constant;
+				gubo.cosout = 0.75f + constant;
+				gubo.cosin = 0.80 + constant;
 
 				// Writes value to the GPU
 				DSGubo.map(currentImage, &gubo, sizeof(gubo), 0);
@@ -558,6 +582,8 @@ class SlotMachine : public BaseProject {
 				DSFloor.map(currentImage, &uboFloor, sizeof(uboFloor), 0);
 				break;
 			case 1:
+				uboGameOver.visible = (gameState == 1) ? 1.0f : 0.0f;
+				DSGameOver.map(currentImage, &uboGameOver, sizeof(uboGameOver), 0);
 				break;
 		}
 	}	
