@@ -27,8 +27,8 @@ class Ball {
 private:
     enum Side : int { up = 1, down = 2, left = 3, right = 4 };
     float speed = 1.0f;
-    glm::vec3 minArea = glm::vec3(-5.0f, 0.0f, -5.0f);
-    glm::vec3 maxArea = glm::vec3(5.0f, 0.0f, 5.0f);
+    glm::vec3 minArea = glm::vec3(-10.0f, 0.0f, -10.0f);
+    glm::vec3 maxArea = glm::vec3(10.0f, 0.0f, 10.0f);
 
 public:
     float size = random(0.2f, 1.0f);
@@ -47,16 +47,16 @@ public:
 
         switch (side) { //choose a starting side and assign a random starting position from the specific side
         case up:
-            this->position = glm::vec3(random(-5.0f, 5.0f), 0.0f, 5.0f);
+            this->position = glm::vec3(random(-10.0f, 10.0f), 0.0f, 10.0f);
             break;
         case down:
-            this->position = glm::vec3(random(-5.0f, 5.0f), 0.0f, -5.0f);
+            this->position = glm::vec3(random(-10.0f, 10.0f), 0.0f, -10.0f);
             break;
         case left:
-            this->position = glm::vec3(-5.0f, 0.0f, random(-5.0f, 5.0f));
+            this->position = glm::vec3(-10.0f, 0.0f, random(-10.0f, 10.0f));
             break;
         case right:
-            this->position = glm::vec3(5.0f, 0.0f, random(-5.0f, 5.0f));
+            this->position = glm::vec3(10.0f, 0.0f, random(-10.0f, 10.0f));
             break;
         }
 

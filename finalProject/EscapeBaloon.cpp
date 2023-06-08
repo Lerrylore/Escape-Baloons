@@ -439,12 +439,12 @@ class SlotMachine : public BaseProject {
 			gameTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - start).count(); /*TIMER IN SECONDI*/
 			float spawnTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - finalTime).count();
 
-			static glm::vec3 minArea = glm::vec3(-5.0f, 0.0f, -5.0f);
-			static glm::vec3 maxArea = glm::vec3(5.0f, 0.0f, 5.0f);
+			static glm::vec3 minArea = glm::vec3(-10.0f, 0.0f, -10.0f);
+			static glm::vec3 maxArea = glm::vec3(10.0f, 0.0f, 10.0f);
 
 			// To debounce the pressing of the fire button, and start the event when the key is released
 			const glm::vec3 StartingPosition = glm::vec3(3.0, 0.0, -2.0);
-			static Wave wave = Wave(10, 1.0f, minArea, maxArea);
+			static Wave wave = Wave(15, 1.0f, minArea, maxArea);
 			//static Ball ball = Ball(StartingPosition, deltaT);
 
 			std::list<Ball>::iterator tempBall;
