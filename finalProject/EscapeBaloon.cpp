@@ -528,7 +528,7 @@ class SlotMachine : public BaseProject {
 			float lamba = 10.0f;
 			switch(gameState)
 			{
-			case 0:{
+			case 0: {
 				if (spawnTime >= 1.0f || !flaggswag) {
 					glm::vec3 positionToTrack = Pos;
 					wave.addBall(positionToTrack);
@@ -647,7 +647,8 @@ class SlotMachine : public BaseProject {
 				uboFloor.nMat[0] = glm::inverse(glm::transpose(World));
 				DSFloor.map(currentImage, &uboFloor, sizeof(uboFloor), 0);
 				break;
-			case 1:
+			}
+			case 1: {
 				uboGameOver.visible = (gameState == 1) ? 1.0f : 0.0f;
 				DSGameOver.map(currentImage, &uboGameOver, sizeof(uboGameOver), 0);
 				break;
