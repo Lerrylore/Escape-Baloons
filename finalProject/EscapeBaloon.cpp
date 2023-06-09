@@ -476,12 +476,12 @@ class SlotMachine : public BaseProject {
 			float lamba = 10.0f;
 			switch(gameState)
 			{
-			case 0:
+			case 0:{
 				if (spawnTime >= 1.0f || !flaggswag) {
-				glm::vec3 positionToTrack = Pos;
-				wave.addBall(positionToTrack);
-				finalTime = currentTime;
-				flaggswag = true;
+					glm::vec3 positionToTrack = Pos;
+					wave.addBall(positionToTrack);
+					finalTime = currentTime;
+					flaggswag = true;
 				}
 				newPos = (oldPos * exp(-lamba * deltaT)) + Pos * (1 - exp(-lamba * deltaT));
 				oldPos = newPos;
@@ -585,6 +585,7 @@ class SlotMachine : public BaseProject {
 				uboGameOver.visible = (gameState == 1) ? 1.0f : 0.0f;
 				DSGameOver.map(currentImage, &uboGameOver, sizeof(uboGameOver), 0);
 				break;
+			}
 		}
 	}	
 };
