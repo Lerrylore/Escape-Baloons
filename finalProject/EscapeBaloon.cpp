@@ -86,9 +86,9 @@ class SlotMachine : public BaseProject {
 	// Models, textures and Descriptors (values assigned to the uniforms)
 	// Please note that Model objects depends on the corresponding vertex structure
 	Model<VertexMesh> MCharacter, MFloor, MSphere;
-	Model<VertexOverlay> MKey, MSplash;
-	DescriptorSet DSGubo, DSCharacter, DSSphere1, DSSphere2, DSSphere3, DSSphere4, DSBall, DSFloor;
-	Texture TCharacter, TFloor, TSphere1, TSphere2, TSphere3, TSphere4;
+	Model<VertexOverlay> MKey, MSplash, MGameOver;
+	DescriptorSet DSGubo, DSCharacter, DSSphere1, DSSphere2, DSSphere3, DSSphere4, DSBall, DSFloor, DSGameOver;
+	Texture TCharacter, TFloor, TSphere1, TSphere2, TSphere3, TSphere4, TGameOver;
 	
 	// C++ storage for uniform variables
 	MeshUniformBlock uboCharacter, uboFloor, uboSphere1, uboSphere2, uboSphere3, uboSphere4;
