@@ -52,6 +52,13 @@ struct VertexOverlay {
 	glm::vec2 UV;
 };
 
+struct VertexNormMap {
+	glm::vec3 pos;
+	glm::vec3 normal;
+	glm::vec4 tangent;
+	glm::vec2 texCoord;
+};
+
 struct MeshCounters {
 	int alien = 0;
 	int opal = 0;
@@ -73,25 +80,28 @@ class SlotMachine : public BaseProject {
 	bool flaggswag = false;
 
 	// Descriptor Layouts ["classes" of what will be passed to the shaders]
-	DescriptorSetLayout DSLGubo, DSLMesh, DSLOverlay;
+	DescriptorSetLayout DSLGubo, DSLMesh, DSLOverlay, DSLNormMap;
 
 	// Vertex formats
 	VertexDescriptor VMesh;
 	VertexDescriptor VOverlay;
+	VertexDescriptor VNorm;
 
 	// Pipelines [Shader couples]
 	Pipeline PMesh;
 	Pipeline POverlay;
+	Pipeline PNormMap;
 
 	// Models, textures and Descriptors (values assigned to the uniforms)
 	// Please note that Model objects depends on the corresponding vertex structure
 	Model<VertexMesh> MCharacter, MFloor, MSphere;
 	Model<VertexOverlay> MKey, MSplash, MGameOver;
-	DescriptorSet DSGubo, DSCharacter, DSSphere1, DSSphere2, DSSphere3, DSSphere4, DSBall, DSFloor, DSGameOver;
-	Texture TCharacter, TFloor, TSphere1, TSphere2, TSphere3, TSphere4, TGameOver;
+	Model<VertexNormMap> MSphereGLTF;
+	DescriptorSet DSGubo, DSCharacter, DSSphere1, DSSphere2, DSSphere3, DSSphere4,DSSphereS, DSBall, DSFloor, DSGameOver;
+	Texture TCharacter, TFloor, TSphere1, TSphere2, TSphere3, TSphere4, TGameOver, TSphere1N, TSphere1M, TSphere1R, TSphere1AO;
 	
 	// C++ storage for uniform variables
-	MeshUniformBlock uboCharacter, uboFloor, uboSphere1, uboSphere2, uboSphere3, uboSphere4;
+	MeshUniformBlock uboCharacter, uboFloor, uboSphere1, uboSphere2, uboSphere3, uboSphere4, uboSphereS;
 	GlobalUniformBlock gubo;
 	OverlayUniformBlock uboKey, uboSplash, uboGameOver;
 
@@ -147,6 +157,12 @@ class SlotMachine : public BaseProject {
 		DSLGubo.init(this, {
 					{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS}
 				});
+		DSLNormMap.init(this, {
+					{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS},
+					{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT},
+					{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT},
+					{3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}
+			});
 
 		// Vertex descriptors
 		VMesh.init(this, {
@@ -194,6 +210,19 @@ class SlotMachine : public BaseProject {
 				         sizeof(glm::vec2), UV}
 				});
 
+		VNorm.init(this, {
+				  {0, sizeof(VertexNormMap), VK_VERTEX_INPUT_RATE_VERTEX}
+				}, {
+				  {0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VertexNormMap, pos),
+				         sizeof(glm::vec3), POSITION},
+				  {0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VertexNormMap, normal),
+				         sizeof(glm::vec3), NORMAL},
+				  {0, 2, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(VertexNormMap, tangent),
+				         sizeof(glm::vec3), TANGENT},
+				  {0, 3, VK_FORMAT_R32G32_SFLOAT, offsetof(VertexNormMap, texCoord),
+				         sizeof(glm::vec2), UV}
+				});
+
 		// Pipelines [Shader couples]
 		// The second parameter is the pointer to the vertex definition
 		// Third and fourth parameters are respectively the vertex and fragment shaders
@@ -203,6 +232,7 @@ class SlotMachine : public BaseProject {
 		POverlay.init(this, &VOverlay, "shaders/OverlayVert.spv", "shaders/OverlayFrag.spv", {&DSLOverlay});
 		POverlay.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL,
  								    VK_CULL_MODE_NONE, false);
+		PNormMap.init(this, &VNorm, "shaders/NMVert.spv", "shaders/NMBlinnFrag.spv", {&DSLGubo, &DSLNormMap});
 
 		// Models, textures and Descriptors (values assigned to the uniforms)
 
@@ -215,6 +245,8 @@ class SlotMachine : public BaseProject {
 		// Creates a mesh with direct enumeration of vertices and indices
 		MFloor.init(this, &VMesh, "Models/floor.obj", OBJ);
 		MSphere.init(this, &VMesh, "Models/Sphere.obj", OBJ);
+		
+		MSphereGLTF.init(this, &VNorm, "Models/Sphere.gltf", GLTF);
 
 		MGameOver.vertices = {{{-1.0f, -1.0f}, {0.0f, 0.0f}}, {{-1.0f, 1.0f}, {0.0f,1.0f}},
 						 {{ 1.0f,-1.0f}, {1.0f,0.0f}}, {{ 1.0f, 1.0f}, {1.0f,1.0f}}};
@@ -226,7 +258,10 @@ class SlotMachine : public BaseProject {
 		// The second parameter is the file name
 		TCharacter.init(this,   "textures/red_Base_Color.png");
 		TFloor.init(this, "textures/floor.jpg");
-		TSphere1.init(this, "textures/alien.png");
+		TSphere1.init(this, "textures/alien/alien.png");
+		TSphere1N.init(this, "textures/alien/alien-panels_normal-ogl.png", VK_FORMAT_R8G8B8A8_UNORM);
+		TSphere1M.init(this, "textures/alien/alien_MRAO.png", VK_FORMAT_R8G8B8A8_UNORM);
+	
 		TSphere2.init(this, "textures/opal.jpeg");
 		TSphere3.init(this, "textures/knit.jpeg");
 		TSphere4.init(this, "textures/shatter.png");
@@ -246,7 +281,7 @@ class SlotMachine : public BaseProject {
 		// This creates a new pipeline (with the current surface), using its shaders
 		PMesh.create();
 		POverlay.create();
-		
+		PNormMap.create();
 		// Here you define the data set
 		DSCharacter.init(this, &DSLMesh, {
 		// the second parameter, is a pointer to the Uniform Set Layout of this set
@@ -259,10 +294,13 @@ class SlotMachine : public BaseProject {
 					{1, TEXTURE, 0, &TCharacter}
 				});
 
-		DSSphere1.init(this, &DSLMesh, {
+		DSSphere1.init(this, &DSLNormMap, {
 			{0, UNIFORM, sizeof(MeshUniformBlock), nullptr},
-			{1, TEXTURE, 0, &TSphere1}
+			{1, TEXTURE, 0, &TSphere1},
+			{2, TEXTURE, 0, &TSphere1N},
+			{3, TEXTURE, 0, &TSphere1M}
 		});
+
 		DSSphere2.init(this, &DSLMesh, {
 			{0, UNIFORM, sizeof(MeshUniformBlock), nullptr},
 			{1, TEXTURE, 0, &TSphere2}
@@ -296,10 +334,11 @@ class SlotMachine : public BaseProject {
 		// Cleanup pipelines
 		PMesh.cleanup();
 		POverlay.cleanup();
-
+		PNormMap.cleanup();
 		// Cleanup datasets
 		DSCharacter.cleanup();
 		DSSphere1.cleanup();
+		DSSphereS.cleanup();
 		DSSphere2.cleanup();
 		DSSphere3.cleanup();
 		DSSphere4.cleanup();
@@ -321,6 +360,11 @@ class SlotMachine : public BaseProject {
 		TCharacter.cleanup();
 		TFloor.cleanup();
 		TSphere1.cleanup();
+		TSphere1N.cleanup();
+		TSphere1M.cleanup();
+		TSphere1AO.cleanup();
+		TSphere1R.cleanup();
+
 		TSphere2.cleanup();
 		TSphere3.cleanup();
 		TSphere4.cleanup();
@@ -334,15 +378,17 @@ class SlotMachine : public BaseProject {
 		MSplash.cleanup();
 		MSphere.cleanup();
 		MGameOver.cleanup();
+		MSphereGLTF.cleanup();
 		// Cleanup descriptor set layouts
 		DSLMesh.cleanup();
 		DSLOverlay.cleanup();
-
+		DSLNormMap.cleanup();
 		DSLGubo.cleanup();
 		
 		// Destroies the pipelines
 		PMesh.destroy();		
 		POverlay.destroy();
+		PNormMap.destroy();
 
 
 	}
@@ -379,9 +425,13 @@ class SlotMachine : public BaseProject {
 			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MCharacter.indices.size()), 1, 0, 0, 0);
 			// the second parameter is the number of indexes to be drawn. For a Model object,
 			// this can be retrieved with the .indices.size() method.
+			
+			PNormMap.bind(commandBuffer);
+			MSphereGLTF.bind(commandBuffer);
+			DSSphere1.bind(commandBuffer, PNormMap, 1, currentImage);
+			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphereGLTF.indices.size()), WAVE_SIZE, 0, 0, 0);
+			PMesh.bind(commandBuffer);
 			MSphere.bind(commandBuffer);
-			DSSphere1.bind(commandBuffer, PMesh, 1, currentImage);
-			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphere.indices.size()), WAVE_SIZE, 0, 0, 0);
 			DSSphere2.bind(commandBuffer, PMesh, 1, currentImage);
 			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphere.indices.size()), WAVE_SIZE, 0, 0, 0);
 			DSSphere3.bind(commandBuffer, PMesh, 1, currentImage);
@@ -393,6 +443,8 @@ class SlotMachine : public BaseProject {
 			DSFloor.bind(commandBuffer, PMesh, 1, currentImage);
 			vkCmdDrawIndexed(commandBuffer,
 				static_cast<uint32_t>(MFloor.indices.size()), 1, 0, 0, 0);
+
+			
 			break;
 		case 1:
 			// sets global uniforms (see below fro parameters explanation)
@@ -524,12 +576,13 @@ class SlotMachine : public BaseProject {
 			if (Pos.z < -5.0f) Pos.z = -5.0f;
 			//code to move objects around
 			std::list<Ball>::iterator currentBall;
-
+			static glm::mat4 tempWorldMatrix = glm::mat4(1);
+			static glm::vec3 tempPos = glm::vec3(1);
 			float lamba = 10.0f;
 			switch(gameState)
 			{
 			case 0:{
-				if (spawnTime >= 1.0f || !flaggswag) {
+				if (spawnTime >= 3.0f || !flaggswag) {
 					glm::vec3 positionToTrack = Pos;
 					wave.addBall(positionToTrack);
 					finalTime = currentTime;
@@ -633,12 +686,18 @@ class SlotMachine : public BaseProject {
 					clearUbo(&uboSphere3, 0);
 					clearUbo(&uboSphere4, 0);
 				}
-				
+				uboSphereS.amb = 1.0f; uboSphereS.gamma = 180.0f; uboSphereS.sColor = glm::vec3(1.0f);
+				tempPos += glm::vec3(0.1f*deltaT,0,0);
+				float yaw;
+				tempWorldMatrix =  glm::translate(glm::mat4(1.0), tempPos);
+				uboSphereS.mvpMat[0] = Prj * View * tempWorldMatrix;
+				uboSphereS.mMat[0] = tempWorldMatrix;
+				uboSphereS.nMat[0] = glm::inverse(glm::transpose(tempWorldMatrix));
 				DSSphere1.map(currentImage, &uboSphere1, sizeof(uboSphere1), 0);
 				DSSphere2.map(currentImage, &uboSphere2, sizeof(uboSphere2), 0);
 				DSSphere3.map(currentImage, &uboSphere3, sizeof(uboSphere3), 0);
 				DSSphere4.map(currentImage, &uboSphere4, sizeof(uboSphere4), 0);
-
+			
 				glm::mat4 World = glm::mat4(1);
 				World = World * glm::translate(glm::mat4(1), glm::vec3(-20, 0, -20)) * glm::scale(glm::mat4(1), glm::vec3(50, 1, 50));
 				uboFloor.amb = 1.0f; uboFloor.gamma = 180.0f; uboFloor.sColor = glm::vec3(1.0f);
@@ -646,6 +705,7 @@ class SlotMachine : public BaseProject {
 				uboFloor.mMat[0] = World;
 				uboFloor.nMat[0] = glm::inverse(glm::transpose(World));
 				DSFloor.map(currentImage, &uboFloor, sizeof(uboFloor), 0);
+				
 				break;
 			case 1:
 				uboGameOver.visible = (gameState == 1) ? 1.0f : 0.0f;

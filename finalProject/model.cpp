@@ -126,10 +126,11 @@ class Wave {
 
         void addBall(glm::vec3 playerPosition) {
             if(balls.size() <= waveSize) {
-                int type = 1 + (rand() % 4);
+                int type = 1 + (rand() % 4) ;
                 balls.push_back(Ball(playerPosition, speed, balls.size(), type));
             }
             std::cout << "adding: " << balls.size() << std::endl;
+            
         }
 
         void removeOutOfBoundBalls() {
