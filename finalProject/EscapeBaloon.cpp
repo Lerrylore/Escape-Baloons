@@ -475,6 +475,7 @@ class SlotMachine : public BaseProject {
 		}
 	}
 	void updateUbo(MeshUniformBlock* ubo, int counter, glm::mat4 objectWorldMatrix, glm::mat4 Prj, glm::mat4 View) {
+		ubo->amb = 1.0f; ubo->gamma = 180.0f; ubo->sColor = glm::vec3(1.0f);
 		ubo->mvpMat[counter] = Prj * View * objectWorldMatrix;
 		ubo->mMat[counter] = objectWorldMatrix;
 		ubo->nMat[counter] = glm::inverse(glm::transpose(objectWorldMatrix));
@@ -660,18 +661,22 @@ class SlotMachine : public BaseProject {
 							case alien: {
 								updateUbo(&uboSphere1, meshCounters.alien, currentBall->getWorldMatrix(), Prj, View);
 								meshCounters.alien++;
+								break;
 							}
 							case opal: {
 								updateUbo(&uboSphere2, meshCounters.opal, currentBall->getWorldMatrix(), Prj, View);
 								meshCounters.opal++;
+								break;
 							}
 							case knit: {
 								updateUbo(&uboSphere3, meshCounters.knit, currentBall->getWorldMatrix(), Prj, View);
 								meshCounters.knit++;
+								break;
 							}
 							case shatter: {
 								updateUbo(&uboSphere4, meshCounters.shatter, currentBall->getWorldMatrix(), Prj, View);
 								meshCounters.shatter++;
+								break;
 							}
 						}
 
@@ -688,7 +693,6 @@ class SlotMachine : public BaseProject {
 				}
 				uboSphereS.amb = 1.0f; uboSphereS.gamma = 180.0f; uboSphereS.sColor = glm::vec3(1.0f);
 				tempPos += glm::vec3(0.1f*deltaT,0,0);
-				float yaw;
 				tempWorldMatrix =  glm::translate(glm::mat4(1.0), tempPos);
 				uboSphereS.mvpMat[0] = Prj * View * tempWorldMatrix;
 				uboSphereS.mMat[0] = tempWorldMatrix;

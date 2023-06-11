@@ -4,6 +4,8 @@
 #include <random>
 #include <cfenv>
 #include <list>
+#include <random>
+
 
 /*
 struct wave {
@@ -125,11 +127,15 @@ class Wave {
         }
 
         void addBall(glm::vec3 playerPosition) {
-            if(balls.size() <= waveSize) {
-                int type = 1 + (rand() % 4) ;
-                balls.push_back(Ball(playerPosition, speed, balls.size(), type));
-            }
-            std::cout << "adding: " << balls.size() << std::endl;
+        unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
+        std::default_random_engine rand(seed);
+        std::uniform_int_distribution<int> distr(1, 4);
+        if(balls.size() <= waveSize) {
+            int type = distr(rand) ;
+            balls.push_back(Ball(playerPosition, speed, balls.size(), type));
+        }
+        rand.seed();
+        std::cout << "adding: " << balls.size() << std::endl;
             
         }
 
