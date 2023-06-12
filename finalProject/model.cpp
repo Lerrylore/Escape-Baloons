@@ -43,8 +43,12 @@ public:
     int index;
 
     Ball(glm::vec3 playerPosition, float speed, int index, int type) {
+        unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
+        std::default_random_engine rand(seed);
+        std::uniform_int_distribution<int> distr(1, 4);
         //it would be best to use the template above, but the function is throwing a floating point exception :/
-        int choice = 1 + (rand() % 4); //rand() is considered to be the worst choice for a random num generator lol
+        int choice = distr(rand); //rand() is considered to be the worst choice for a random num generator lol
+        rand.seed();
         Side side = static_cast<Side>(choice);
 
         switch (side) { //choose a starting side and assign a random starting position from the specific side

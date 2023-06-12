@@ -98,7 +98,7 @@ class SlotMachine : public BaseProject {
 	Model<VertexOverlay> MKey, MSplash, MGameOver;
 	Model<VertexNormMap> MSphereGLTF;
 	DescriptorSet DSGubo, DSCharacter, DSSphere1, DSSphere2, DSSphere3, DSSphere4,DSSphereS, DSBall, DSFloor, DSGameOver;
-	Texture TCharacter, TFloor, TSphere1, TSphere2, TSphere3, TSphere4, TGameOver, TSphere1N, TSphere1M, TSphere1R, TSphere1AO;
+	Texture TCharacter, TFloor, TSphere1, TSphere2, TSphere3, TSphere4, TGameOver, TSphere1N, TSphere1M, TSphere4N, TSphere4M;
 	
 	// C++ storage for uniform variables
 	MeshUniformBlock uboCharacter, uboFloor, uboSphere1, uboSphere2, uboSphere3, uboSphere4, uboSphereS;
@@ -229,10 +229,14 @@ class SlotMachine : public BaseProject {
 		// The last array, is a vector of pointer to the layouts of the sets that will
 		// be used in this pipeline. The first element will be set 0, and so on..
 		PMesh.init(this, &VMesh, "shaders/MeshVert.spv", "shaders/MeshFrag.spv", {&DSLGubo, &DSLMesh});
+		PMesh.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL,
+ 								    VK_CULL_MODE_NONE, true);
 		POverlay.init(this, &VOverlay, "shaders/OverlayVert.spv", "shaders/OverlayFrag.spv", {&DSLOverlay});
 		POverlay.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL,
  								    VK_CULL_MODE_NONE, false);
 		PNormMap.init(this, &VNorm, "shaders/NMVert.spv", "shaders/NMBlinnFrag.spv", {&DSLGubo, &DSLNormMap});
+		PNormMap.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL,
+ 								    VK_CULL_MODE_NONE, true);
 
 		// Models, textures and Descriptors (values assigned to the uniforms)
 
@@ -264,7 +268,9 @@ class SlotMachine : public BaseProject {
 	
 		TSphere2.init(this, "textures/opal.jpeg");
 		TSphere3.init(this, "textures/knit.jpeg");
-		TSphere4.init(this, "textures/shatter.png");
+		TSphere4.init(this, "textures/StylizedWoodPlanks_01/StylizedWoodPlanks_01_basecolor.jpg");
+		TSphere4N.init(this, "textures/StylizedWoodPlanks_01/StylizedWoodPlanks_01_normal.jpg");
+		TSphere4M.init(this, "textures/StylizedWoodPlanks_01/Wood_MRAO.png");
 		TGameOver.init(this, "textures/GameOver.png");
 		// Init local variables
 		CamH = 1.0f;
@@ -309,9 +315,11 @@ class SlotMachine : public BaseProject {
 			{0, UNIFORM, sizeof(MeshUniformBlock), nullptr},
 			{1, TEXTURE, 0, &TSphere3}
 		});
-		DSSphere4.init(this, &DSLMesh, {
+		DSSphere4.init(this, &DSLNormMap, {
 			{0, UNIFORM, sizeof(MeshUniformBlock), nullptr},
-			{1, TEXTURE, 0, &TSphere4}
+			{1, TEXTURE, 0, &TSphere4},
+			{2, TEXTURE, 0, &TSphere4N},
+			{3, TEXTURE, 0, &TSphere4M}
 		});
 		DSFloor.init(this, &DSLMesh, {
 					{0, UNIFORM, sizeof(MeshUniformBlock), nullptr},
@@ -362,8 +370,8 @@ class SlotMachine : public BaseProject {
 		TSphere1.cleanup();
 		TSphere1N.cleanup();
 		TSphere1M.cleanup();
-		TSphere1AO.cleanup();
-		TSphere1R.cleanup();
+		TSphere4N.cleanup();
+		TSphere4M.cleanup();
 
 		TSphere2.cleanup();
 		TSphere3.cleanup();
@@ -430,14 +438,16 @@ class SlotMachine : public BaseProject {
 			MSphereGLTF.bind(commandBuffer);
 			DSSphere1.bind(commandBuffer, PNormMap, 1, currentImage);
 			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphereGLTF.indices.size()), WAVE_SIZE, 0, 0, 0);
+			DSSphere4.bind(commandBuffer, PNormMap, 1, currentImage);
+			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphere.indices.size()), WAVE_SIZE, 0, 0, 0);
+
 			PMesh.bind(commandBuffer);
 			MSphere.bind(commandBuffer);
 			DSSphere2.bind(commandBuffer, PMesh, 1, currentImage);
 			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphere.indices.size()), WAVE_SIZE, 0, 0, 0);
 			DSSphere3.bind(commandBuffer, PMesh, 1, currentImage);
 			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphere.indices.size()), WAVE_SIZE, 0, 0, 0);
-			DSSphere4.bind(commandBuffer, PMesh, 1, currentImage);
-			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphere.indices.size()), WAVE_SIZE, 0, 0, 0);
+			
 
 			MFloor.bind(commandBuffer);
 			DSFloor.bind(commandBuffer, PMesh, 1, currentImage);
@@ -491,10 +501,20 @@ class SlotMachine : public BaseProject {
 		}
 		
 			// Integration with the timers and the controllers
+			static bool timeWarp = 0;
 			float deltaT;
+			float deltaT2;
+			float warpTime = 0;
+			static bool once = 1;
 			glm::vec3 m = glm::vec3(0.0f), r = glm::vec3(0.0f);
 			bool fire = false;
 			getSixAxis(deltaT, m, r, fire);
+			deltaT2 = deltaT;
+			if(glfwGetKey(window, GLFW_KEY_Q) && once) {
+				timeWarp = 1;
+				once = 0;
+			}
+			
 			// getSixAxis() is defined in Starter.hpp in the base class.
 			// It fills the float point variable passed in its first parameter with the time
 			// since the last call to the procedure.
@@ -510,6 +530,17 @@ class SlotMachine : public BaseProject {
 			static auto finalTime = start;
 			gameTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - start).count(); /*TIMER IN SECONDI*/
 			float spawnTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - finalTime).count();
+
+			if (timeWarp) {
+				static auto startWarpTimeCD = std::chrono::high_resolution_clock::now();
+				warpTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startWarpTimeCD).count();
+				deltaT2 = deltaT2 / 10;
+				spawnTime = spawnTime / 10;
+			}
+
+			if (warpTime > 5.0f){
+				timeWarp = 0;
+			}
 
 			static glm::vec3 minArea = glm::vec3(-10.0f, 0.0f, -10.0f);
 			static glm::vec3 maxArea = glm::vec3(10.0f, 0.0f, 10.0f);
@@ -612,7 +643,7 @@ class SlotMachine : public BaseProject {
 					gubo.DlightColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
 				}
 				gubo.eyePos = camPos;
-				gubo.lightPos = Pos + glm::vec3(0, 5, 0.0f);
+				gubo.lightPos = Pos + glm::vec3(0,6, 0.0f);
 			
 				gubo.cosout = 0.75f + constant;
 				gubo.cosin = 0.80 + constant;
@@ -647,7 +678,7 @@ class SlotMachine : public BaseProject {
 					FOR ball in balls  -> update mvpMat, mMat, nMat
 				*/
 				for(currentBall = wave.balls.begin(); currentBall != wave.balls.end(); currentBall++) {
-					currentBall->updatePosition(deltaT);
+					currentBall->updatePosition(deltaT2);
 					if (glm::distance(currentBall->position - glm::vec3(0.0f, currentBall->size, 0.0f), Pos) <= currentBall->size || gameTime > 120.0f) {
 							gameState = 1;
 						

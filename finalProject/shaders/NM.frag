@@ -10,9 +10,7 @@ layout(location = 0) out vec4 outColor;
 
 layout(set=1, binding = 1) uniform sampler2D tex;
 layout(set=1, binding = 2) uniform sampler2D normMap;
-layout(set=1, binding = 3) uniform sampler2D metMap;
-layout(set=1, binding = 4) uniform sampler2D aoMap;
-layout(set=1, binding = 5) uniform sampler2D rMap;
+layout(set=1, binding = 3) uniform sampler2D matMap;
 
 layout( binding = 0) uniform GlobalUniformBufferObject {
 	float cosout;
@@ -63,19 +61,21 @@ void main() {
 
 	vec3 albedo = texture(tex, fragUV).rgb;
 
-	float roughness = texture(rMap, fragUV).r;
-	float ao = texture(aoMap, fragUV).r;
-	float metallic = texture(metMap, fragUV).r;
+	vec4 MRAO = texture(matMap, fragUV);
+	float roughness = 0;
+	float pex = 160.0f;
+	float ao = MRAO.b;
+	float metallic = MRAO.r;
 	
 	vec3 lightPos = gubo.lightPos;
 	vec3 temp = lightPos - fragPos;
 	vec3 lightDir = temp/length(temp);
-	vec3 lightColor =  gubo.lightColor;
+	vec3 lightColor =  gubo.lightColor * pow(g/length(temp), beta)  * clamp((dot(lightDir,gubo.lightDir) - cosout)/(cosin-cosout), 0.0, 1.0);
 	vec3 L = gubo.lightDir;
 
 	vec3 V = normalize(gubo.eyePos - fragPos);
 
-	vec3 DiffSpec = BRDF(V, N, L, albedo, 1.3f, metallic, roughness);
+	vec3 DiffSpec = BRDF(V, N, L, albedo, 0.5f, metallic, roughness);
 	vec3 Ambient = albedo * 0.05f * ao;
 	
 	outColor = vec4(clamp(0.95 * DiffSpec * lightColor.rgb + Ambient,0.0,1.0), 1.0f);
