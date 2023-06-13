@@ -91,6 +91,7 @@ class SlotMachine : public BaseProject {
 	Pipeline PMesh;
 	Pipeline POverlay;
 	Pipeline PNormMap;
+	Pipeline PNayar;
 
 	// Models, textures and Descriptors (values assigned to the uniforms)
 	// Please note that Model objects depends on the corresponding vertex structure
@@ -237,6 +238,7 @@ class SlotMachine : public BaseProject {
 		PNormMap.init(this, &VNorm, "shaders/NMVert.spv", "shaders/NMBlinnFrag.spv", {&DSLGubo, &DSLNormMap});
 		PNormMap.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL,
  								    VK_CULL_MODE_NONE, true);
+		PNayar.init(this, &VMesh, "shaders/MeshVert.spv", "shaders/NayarFrag.spv", {&DSLGubo, &DSLMesh});
 
 		// Models, textures and Descriptors (values assigned to the uniforms)
 
@@ -267,7 +269,7 @@ class SlotMachine : public BaseProject {
 		TSphere1M.init(this, "textures/alien/alien_MRAO.png", VK_FORMAT_R8G8B8A8_UNORM);
 	
 		TSphere2.init(this, "textures/opal.jpeg");
-		TSphere3.init(this, "textures/knit.jpeg");
+		TSphere3.init(this, "textures/dirt.jpg");
 		TSphere4.init(this, "textures/StylizedWoodPlanks_01/StylizedWoodPlanks_01_basecolor.jpg");
 		TSphere4N.init(this, "textures/StylizedWoodPlanks_01/StylizedWoodPlanks_01_normal.jpg");
 		TSphere4M.init(this, "textures/StylizedWoodPlanks_01/Wood_MRAO.png");
@@ -288,6 +290,7 @@ class SlotMachine : public BaseProject {
 		PMesh.create();
 		POverlay.create();
 		PNormMap.create();
+		PNayar.create();
 		// Here you define the data set
 		DSCharacter.init(this, &DSLMesh, {
 		// the second parameter, is a pointer to the Uniform Set Layout of this set
@@ -343,6 +346,7 @@ class SlotMachine : public BaseProject {
 		PMesh.cleanup();
 		POverlay.cleanup();
 		PNormMap.cleanup();
+		PNayar.cleanup();
 		// Cleanup datasets
 		DSCharacter.cleanup();
 		DSSphere1.cleanup();
@@ -397,6 +401,7 @@ class SlotMachine : public BaseProject {
 		PMesh.destroy();		
 		POverlay.destroy();
 		PNormMap.destroy();
+		PNayar.destroy();
 
 
 	}
@@ -439,16 +444,18 @@ class SlotMachine : public BaseProject {
 			DSSphere1.bind(commandBuffer, PNormMap, 1, currentImage);
 			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphereGLTF.indices.size()), WAVE_SIZE, 0, 0, 0);
 			DSSphere4.bind(commandBuffer, PNormMap, 1, currentImage);
-			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphere.indices.size()), WAVE_SIZE, 0, 0, 0);
+			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphereGLTF.indices.size()), WAVE_SIZE, 0, 0, 0);
 
 			PMesh.bind(commandBuffer);
 			MSphere.bind(commandBuffer);
 			DSSphere2.bind(commandBuffer, PMesh, 1, currentImage);
 			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphere.indices.size()), WAVE_SIZE, 0, 0, 0);
-			DSSphere3.bind(commandBuffer, PMesh, 1, currentImage);
+
+			PNayar.bind(commandBuffer);
+			DSSphere3.bind(commandBuffer, PNayar, 1, currentImage);
 			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphere.indices.size()), WAVE_SIZE, 0, 0, 0);
 			
-
+			PMesh.bind(commandBuffer);
 			MFloor.bind(commandBuffer);
 			DSFloor.bind(commandBuffer, PMesh, 1, currentImage);
 			vkCmdDrawIndexed(commandBuffer,

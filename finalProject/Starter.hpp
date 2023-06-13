@@ -1824,7 +1824,7 @@ std::cout << "Starting createInstance()\n"  << std::flush;
 		if(glfwGetKey(window, GLFW_KEY_S)) {
 			m.z = -1.0f;
 		}
-		if(glfwGetKey(window, GLFW_KEY_W)) {
+		if(glfwGetKey(window, GLFW_KEY_W)) { 
 			m.z = 1.0f;
 		}
 		if(glfwGetKey(window, GLFW_KEY_R)) {
