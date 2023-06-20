@@ -84,25 +84,27 @@ class SlotMachine : public BaseProject {
 
 	// Vertex formats
 	VertexDescriptor VMesh;
+	//VertexDescriptor VBoundaries;
 	VertexDescriptor VOverlay;
 	VertexDescriptor VNorm;
 
 	// Pipelines [Shader couples]
 	Pipeline PMesh;
+	//Pipeline PBoundaries;
 	Pipeline POverlay;
 	Pipeline PNormMap;
 	Pipeline PNayar;
 
 	// Models, textures and Descriptors (values assigned to the uniforms)
 	// Please note that Model objects depends on the corresponding vertex structure
-	Model<VertexMesh> MCharacter, MFloor, MSphere;
+	Model<VertexMesh> MCharacter, MFloor, MSphere, MBoundaries;
 	Model<VertexOverlay> MKey, MSplash, MGameOver;
 	Model<VertexNormMap> MSphereGLTF;
-	DescriptorSet DSGubo, DSCharacter, DSSphere1, DSSphere2, DSSphere3, DSSphere4,DSSphereS, DSBall, DSFloor, DSGameOver;
-	Texture TCharacter, TFloor, TSphere1, TSphere2, TSphere3, TSphere4, TGameOver, TSphere1N, TSphere1M, TSphere4N, TSphere4M;
+	DescriptorSet DSGubo, DSCharacter, DSSphere1, DSSphere2, DSSphere3, DSSphere4, DSSphereS, DSBall, DSFloor, DSBoundaries, DSGameOver;
+	Texture TCharacter, TFloor, TSphere1, TSphere2, TSphere3, TSphere4, TGameOver, TSphere1N, TSphere1M, TSphere4N, TSphere4M, TBoundaries;
 	
 	// C++ storage for uniform variables
-	MeshUniformBlock uboCharacter, uboFloor, uboSphere1, uboSphere2, uboSphere3, uboSphere4, uboSphereS;
+	MeshUniformBlock uboCharacter, uboFloor, uboBoundaries, uboSphere1, uboSphere2, uboSphere3, uboSphere4, uboSphereS;
 	GlobalUniformBlock gubo;
 	OverlayUniformBlock uboKey, uboSplash, uboGameOver;
 
@@ -135,18 +137,151 @@ class SlotMachine : public BaseProject {
 		Ar = (float)w / (float)h;
 	}
 	
+	inline void addBlockOld(int startColumn, int startRow, int lastColumn, int lastRow,
+						 std::vector<float> &vPos, std::vector<int> &vIdx, int &vertexCounter) {
+		vPos.push_back(startColumn); vPos.push_back(1.0); vPos.push_back(startRow); vertexCounter++; //1
+		vPos.push_back(lastColumn); vPos.push_back(1.0);  vPos.push_back(startRow); vertexCounter++; //2
+		vPos.push_back(startColumn); vPos.push_back(1.0); vPos.push_back(lastRow);  vertexCounter++; //3
+		vPos.push_back(lastColumn); vPos.push_back(1.0);  vPos.push_back(lastRow);  vertexCounter++; //4
+		
+		vPos.push_back(startColumn); vPos.push_back(0.0); vPos.push_back(startRow); vertexCounter++; //5
+		vPos.push_back(lastColumn); vPos.push_back(0.0);  vPos.push_back(startRow); vertexCounter++; //6
+		vPos.push_back(startColumn); vPos.push_back(0.0); vPos.push_back(lastRow);  vertexCounter++; //7
+		vPos.push_back(lastColumn); vPos.push_back(0.0);  vPos.push_back(lastRow);  vertexCounter++; //8
+		
+		vIdx.push_back(vertexCounter - 8); vIdx.push_back(vertexCounter - 7); vIdx.push_back(vertexCounter - 6);
+		vIdx.push_back(vertexCounter - 7); vIdx.push_back(vertexCounter - 6); vIdx.push_back(vertexCounter - 5);
+		
+		vIdx.push_back(vertexCounter - 8); vIdx.push_back(vertexCounter - 6); vIdx.push_back(vertexCounter - 4);
+		vIdx.push_back(vertexCounter - 6); vIdx.push_back(vertexCounter - 4); vIdx.push_back(vertexCounter - 2);
+		
+		vIdx.push_back(vertexCounter - 8); vIdx.push_back(vertexCounter - 7); vIdx.push_back(vertexCounter - 3);
+		vIdx.push_back(vertexCounter - 8); vIdx.push_back(vertexCounter - 4); vIdx.push_back(vertexCounter - 3);
+		
+		vIdx.push_back(vertexCounter - 6); vIdx.push_back(vertexCounter - 2); vIdx.push_back(vertexCounter - 1);
+		vIdx.push_back(vertexCounter - 6); vIdx.push_back(vertexCounter - 5); vIdx.push_back(vertexCounter - 1);
+		
+		vIdx.push_back(vertexCounter - 7); vIdx.push_back(vertexCounter - 5); vIdx.push_back(vertexCounter - 3);
+		vIdx.push_back(vertexCounter - 5); vIdx.push_back(vertexCounter - 3); vIdx.push_back(vertexCounter - 1);
+	}
+	
+	void addBlock(float firstX, float firstZ, float lastX, float lastZ, std::vector<VertexMesh> &vDef, std::vector<uint32_t> &vIdx, int &vertexCounter) {
+		glm::vec2 uv = {0.0, 0.0};
+		
+		vDef.push_back({ {firstX, 0.5, firstZ}, {0.0f, 1.0f, 0.0f}, uv });
+		vDef.push_back({ {lastX, 0.5, firstZ}, {0.0f, 1.0f, 0.0f}, uv });
+		vDef.push_back({ {firstX, 0.5, lastZ}, {0.0f, 1.0f, 0.0f}, uv });
+		vDef.push_back({ {lastX, 0.5, lastZ}, {0.0f, 1.0f, 0.0f}, uv });
+		
+		vDef.push_back({ {firstX, 0.1, firstZ}, {0.0f, 1.0f, 0.0f}, uv });
+		vDef.push_back({ {lastX, 0.1, firstZ}, {0.0f, 1.0f, 0.0f}, uv });
+		vDef.push_back({ {firstX, 0.1, lastZ}, {0.0f, 1.0f, 0.0f}, uv });
+		vDef.push_back({ {lastX, 0.1, lastZ}, {0.0f, 1.0f, 0.0f}, uv });
+		
+		vertexCounter += 8;
+		vIdx.push_back(vertexCounter - 8); vIdx.push_back(vertexCounter - 7); vIdx.push_back(vertexCounter - 6);
+		vIdx.push_back(vertexCounter - 7); vIdx.push_back(vertexCounter - 6); vIdx.push_back(vertexCounter - 5);
+		
+		vIdx.push_back(vertexCounter - 8); vIdx.push_back(vertexCounter - 6); vIdx.push_back(vertexCounter - 4);
+		vIdx.push_back(vertexCounter - 6); vIdx.push_back(vertexCounter - 4); vIdx.push_back(vertexCounter - 2);
+		
+		vIdx.push_back(vertexCounter - 8); vIdx.push_back(vertexCounter - 7); vIdx.push_back(vertexCounter - 3);
+		vIdx.push_back(vertexCounter - 8); vIdx.push_back(vertexCounter - 4); vIdx.push_back(vertexCounter - 3);
+		
+		vIdx.push_back(vertexCounter - 6); vIdx.push_back(vertexCounter - 2); vIdx.push_back(vertexCounter - 1);
+		vIdx.push_back(vertexCounter - 6); vIdx.push_back(vertexCounter - 5); vIdx.push_back(vertexCounter - 1);
+		
+		vIdx.push_back(vertexCounter - 7); vIdx.push_back(vertexCounter - 5); vIdx.push_back(vertexCounter - 3);
+		vIdx.push_back(vertexCounter - 5); vIdx.push_back(vertexCounter - 3); vIdx.push_back(vertexCounter - 1);
+		
+	}
+	
+	void createBoundariesMesh(std::vector<VertexMesh> &vDef, std::vector<uint32_t> &vIdx) {
+		int vertexCounter = 0;
+		
+		addBlock(-5.5f, 5.5f, 5.5f, 5.0f, vDef, vIdx, vertexCounter);
+		addBlock(-5.5f, -5.5f, 5.5f, -5.0f, vDef, vIdx, vertexCounter);
+		addBlock(-5.5f, -5.5f, -5.0f, 5.5f, vDef, vIdx, vertexCounter);
+		addBlock(5.5f, -5.5f, 5.0f, 5.5f, vDef, vIdx, vertexCounter);
+	}
+	
+	///to depre
+	void createCubeMesh(std::vector<VertexMesh> &vDef, std::vector<uint32_t> &vIdx) {
+		int vertexCount = 0;
+		
+		glm::vec3 A = {0.0f, 1.0f, 0.0f};
+		glm::vec3 B = {1.0f, 1.0f, 0.0f};
+		glm::vec3 C = {1.0f, 1.0f, 1.0f};
+		glm::vec3 D = {0.0f, 1.0f, 1.0f};
+		glm::vec3 E = {0.0f, 0.0f, 0.0f};
+		glm::vec3 F = {1.0f, 0.0f, 0.0f};
+		glm::vec3 G = {1.0f, 0.0f, 1.0f};
+		glm::vec3 H = {0.0f, 0.0f, 1.0f};
+		
+		glm::vec2 uv = {0.0, 0.0};
+		
+		//face up
+		vDef.push_back({ A, {0.0f, 1.0f, 0.0f}, uv });
+		vDef.push_back({ B, {0.0f, 1.0f, 0.0f}, uv });
+		vDef.push_back({ D, {0.0f, 1.0f, 0.0f}, uv });
+		vDef.push_back({ C, {0.0f, 1.0f, 0.0f}, uv });
+		
+		vertexCount += 4;
+		
+		vIdx.push_back(vertexCount - 4); vIdx.push_back(vertexCount - 3); vIdx.push_back(vertexCount - 2);	// First triangle
+		vIdx.push_back(vertexCount - 3); vIdx.push_back(vertexCount - 2); vIdx.push_back(vertexCount - 1);	// Second triangle
+		
+		//face front
+		vDef.push_back({ B, {1.0f, 0.0f, 0.0f}, uv });
+		vDef.push_back({ F, {1.0f, 0.0f, 0.0f}, uv });
+		vDef.push_back({ C, {1.0f, 0.0f, 0.0f}, uv });
+		vDef.push_back({ G, {1.0f, 0.0f, 0.0f}, uv });
+		
+		vertexCount += 4;
+		
+		vIdx.push_back(vertexCount - 4); vIdx.push_back(vertexCount - 3); vIdx.push_back(vertexCount - 2);	// First triangle
+		vIdx.push_back(vertexCount - 3); vIdx.push_back(vertexCount - 2); vIdx.push_back(vertexCount - 1);	// Second triangle
+		
+		//face left
+		vDef.push_back({ A, {0.0f, 0.0f, -1.0f}, uv });
+		vDef.push_back({ B, {0.0f, 0.0f, -1.0f}, uv });
+		vDef.push_back({ E, {0.0f, 0.0f, -1.0f}, uv });
+		vDef.push_back({ F, {0.0f, 0.0f, -1.0f}, uv });
+		
+		vertexCount += 4;
+		
+		vIdx.push_back(vertexCount - 4); vIdx.push_back(vertexCount - 3); vIdx.push_back(vertexCount - 2);	// First triangle
+		vIdx.push_back(vertexCount - 3); vIdx.push_back(vertexCount - 2); vIdx.push_back(vertexCount - 1);	// Second triangle
+		
+		//face back
+		vDef.push_back({ A, {-1.0f, 0.0f, 0.0f}, uv });
+		vDef.push_back({ D, {-1.0f, 0.0f, 0.0f}, uv });
+		vDef.push_back({ E, {-1.0f, 0.0f, 0.0f}, uv });
+		vDef.push_back({ H, {-1.0f, 0.0f, 0.0f}, uv });
+		
+		vertexCount += 4;
+		
+		vIdx.push_back(vertexCount - 4); vIdx.push_back(vertexCount - 3); vIdx.push_back(vertexCount - 2);	// First triangle
+		vIdx.push_back(vertexCount - 3); vIdx.push_back(vertexCount - 2); vIdx.push_back(vertexCount - 1);	// Second triangle
+		
+		//face right
+		vDef.push_back({ C, {0.0f, 0.0f, 1.0f}, uv });
+		vDef.push_back({ D, {0.0f, 0.0f, 1.0f}, uv });
+		vDef.push_back({ G, {0.0f, 0.0f, 1.0f}, uv });
+		vDef.push_back({ H, {0.0f, 0.0f, 1.0f}, uv });
+		
+		vertexCount += 4;
+		
+		vIdx.push_back(vertexCount - 4); vIdx.push_back(vertexCount - 3); vIdx.push_back(vertexCount - 2);	// First triangle
+		vIdx.push_back(vertexCount - 3); vIdx.push_back(vertexCount - 2); vIdx.push_back(vertexCount - 1);	// Second triangle
+	}
+	
 	// Here you load and setup all your Vulkan Models and Texutures.
 	// Here you also create your Descriptor set layouts and load the shaders for the pipelines
 	void localInit() {
 
 		// Descriptor Layouts [what will be passed to the shaders]
 		DSLMesh.init(this, {
-					// this array contains the bindings:
-					// first  element : the binding number
-					// second element : the type of element (buffer or texture)
-					//                  using the corresponding Vulkan constant
-					// third  element : the pipeline stage where it will be used
-					//                  using the corresponding Vulkan constant
 					{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS},
 					{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}
 				});
@@ -167,33 +302,8 @@ class SlotMachine : public BaseProject {
 
 		// Vertex descriptors
 		VMesh.init(this, {
-				  // this array contains the bindings
-				  // first  element : the binding number
-				  // second element : the stride of this binging
-				  // third  element : whether this parameter change per vertex or per instance
-				  //                  using the corresponding Vulkan constant
 				  {0, sizeof(VertexMesh), VK_VERTEX_INPUT_RATE_VERTEX}
 				}, {
-				  // this array contains the location
-				  // first  element : the binding number
-				  // second element : the location number
-				  // third  element : the offset of this element in the memory record
-				  // fourth element : the data type of the element
-				  //                  using the corresponding Vulkan constant
-				  // fifth  elmenet : the size in byte of the element
-				  // sixth  element : a constant defining the element usage
-				  //                   POSITION - a vec3 with the position
-				  //                   NORMAL   - a vec3 with the normal vector
-				  //                   UV       - a vec2 with a UV coordinate
-				  //                   COLOR    - a vec4 with a RGBA color
-				  //                   TANGENT  - a vec4 with the tangent vector
-				  //                   OTHER    - anything else
-				  //
-				  // ***************** DOUBLE CHECK ********************
-				  //    That the Vertex data structure you use in the "offsetoff" and
-				  //	in the "sizeof" in the previous array, refers to the correct one,
-				  //	if you have more than one vertex format!
-				  // ***************************************************
 				  {0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VertexMesh, pos),
 				         sizeof(glm::vec3), POSITION},
 				  {0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VertexMesh, norm),
@@ -219,61 +329,46 @@ class SlotMachine : public BaseProject {
 				  {0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VertexNormMap, normal),
 				         sizeof(glm::vec3), NORMAL},
 				  {0, 2, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(VertexNormMap, tangent),
-				         sizeof(glm::vec3), TANGENT},
+				         sizeof(glm::vec4), TANGENT},
 				  {0, 3, VK_FORMAT_R32G32_SFLOAT, offsetof(VertexNormMap, texCoord),
 				         sizeof(glm::vec2), UV}
 				});
 
-		// Pipelines [Shader couples]
-		// The second parameter is the pointer to the vertex definition
-		// Third and fourth parameters are respectively the vertex and fragment shaders
-		// The last array, is a vector of pointer to the layouts of the sets that will
-		// be used in this pipeline. The first element will be set 0, and so on..
 		PMesh.init(this, &VMesh, "shaders/MeshVert.spv", "shaders/MeshFrag.spv", {&DSLGubo, &DSLMesh});
-		PMesh.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL,
- 								    VK_CULL_MODE_NONE, true);
+		PMesh.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, true);
 		POverlay.init(this, &VOverlay, "shaders/OverlayVert.spv", "shaders/OverlayFrag.spv", {&DSLOverlay});
-		POverlay.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL,
- 								    VK_CULL_MODE_NONE, false);
+		POverlay.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, false);
 		PNormMap.init(this, &VNorm, "shaders/NMVert.spv", "shaders/NMBlinnFrag.spv", {&DSLGubo, &DSLNormMap});
-		PNormMap.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL,
- 								    VK_CULL_MODE_NONE, true);
+		PNormMap.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, false);
 		PNayar.init(this, &VMesh, "shaders/MeshVert.spv", "shaders/NayarFrag.spv", {&DSLGubo, &DSLMesh});
 
-		// Models, textures and Descriptors (values assigned to the uniforms)
-
-		// Create models
-		// The second parameter is the pointer to the vertex definition for this model
-		// The third parameter is the file name
-		// The last is a constant specifying the file type: currently only OBJ or GLTF
 		MCharacter.init(this,   &VMesh, "Models/MainCharacter.obj", OBJ);
+		
+		createBoundariesMesh(MBoundaries.vertices, MBoundaries.indices);
+		MBoundaries.initMesh(this, &VMesh);
 
-		// Creates a mesh with direct enumeration of vertices and indices
 		MFloor.init(this, &VMesh, "Models/floor.obj", OBJ);
 		MSphere.init(this, &VMesh, "Models/Sphere.obj", OBJ);
 		
 		MSphereGLTF.init(this, &VNorm, "Models/Sphere.gltf", GLTF);
 
-		MGameOver.vertices = {{{-1.0f, -1.0f}, {0.0f, 0.0f}}, {{-1.0f, 1.0f}, {0.0f,1.0f}},
-						 {{ 1.0f,-1.0f}, {1.0f,0.0f}}, {{ 1.0f, 1.0f}, {1.0f,1.0f}}};
+		MGameOver.vertices = {{{-1.0f, -1.0f}, {0.0f, 0.0f}}, {{-1.0f, 1.0f}, {0.0f,1.0f}}, {{ 1.0f,-1.0f}, {1.0f,0.0f}}, {{ 1.0f, 1.0f}, {1.0f,1.0f}}};
 		MGameOver.indices = {0, 1, 2,    1, 2, 3};
 		MGameOver.initMesh(this, &VOverlay);
 
-		
-		// Create the textures
-		// The second parameter is the file name
 		TCharacter.init(this,   "textures/red_Base_Color.png");
 		TFloor.init(this, "textures/floor.jpg");
+		TBoundaries.init(this, "textures/boundaries.png");
 		TSphere1.init(this, "textures/alien/alien.png");
 		TSphere1N.init(this, "textures/alien/alien-panels_normal-ogl.png", VK_FORMAT_R8G8B8A8_UNORM);
 		TSphere1M.init(this, "textures/alien/alien_MRAO.png", VK_FORMAT_R8G8B8A8_UNORM);
-	
 		TSphere2.init(this, "textures/opal.jpeg");
 		TSphere3.init(this, "textures/dirt.jpg");
 		TSphere4.init(this, "textures/StylizedWoodPlanks_01/StylizedWoodPlanks_01_basecolor.jpg");
-		TSphere4N.init(this, "textures/StylizedWoodPlanks_01/StylizedWoodPlanks_01_normal.jpg");
-		TSphere4M.init(this, "textures/StylizedWoodPlanks_01/Wood_MRAO.png");
+		TSphere4N.init(this, "textures/StylizedWoodPlanks_01/StylizedWoodPlanks_01_normal.jpg", VK_FORMAT_R8G8B8A8_UNORM);
+		TSphere4M.init(this, "textures/StylizedWoodPlanks_01/Wood_MRAO.png", VK_FORMAT_R8G8B8A8_UNORM);
 		TGameOver.init(this, "textures/GameOver.png");
+		
 		// Init local variables
 		CamH = 1.0f;
 		CamRadius = 3.0f;
@@ -293,12 +388,6 @@ class SlotMachine : public BaseProject {
 		PNayar.create();
 		// Here you define the data set
 		DSCharacter.init(this, &DSLMesh, {
-		// the second parameter, is a pointer to the Uniform Set Layout of this set
-		// the last parameter is an array, with one element per binding of the set.
-		// first  elmenet : the binding number
-		// second element : UNIFORM or TEXTURE (an enum) depending on the type
-		// third  element : only for UNIFORMs, the size of the corresponding C++ object. For texture, just put 0
-		// fourth element : only for TEXTUREs, the pointer to the corresponding texture object. For uniforms, use nullptr
 					{0, UNIFORM, sizeof(MeshUniformBlock), nullptr},
 					{1, TEXTURE, 0, &TCharacter}
 				});
@@ -328,6 +417,10 @@ class SlotMachine : public BaseProject {
 					{0, UNIFORM, sizeof(MeshUniformBlock), nullptr},
 					{1, TEXTURE, 0, &TFloor}
 				});
+		DSBoundaries.init(this, &DSLMesh, {
+				  {0, UNIFORM, sizeof(MeshUniformBlock), nullptr},
+				  {1, TEXTURE, 0, &TBoundaries}
+			  });
 		DSGubo.init(this, &DSLGubo, {
 					{0, UNIFORM, sizeof(GlobalUniformBlock), nullptr}
 				});
@@ -335,7 +428,6 @@ class SlotMachine : public BaseProject {
 					{0, UNIFORM, sizeof(OverlayUniformBlock), nullptr},
 					{1, TEXTURE, 0, &TGameOver}
 				});
-
 
 	}
 
@@ -355,12 +447,11 @@ class SlotMachine : public BaseProject {
 		DSSphere3.cleanup();
 		DSSphere4.cleanup();
 		DSFloor.cleanup();
+		DSBoundaries.cleanup();
 		DSBall.cleanup();
 
 		DSGubo.cleanup();
 		DSGameOver.cleanup();
-
-
 	}
 
 	// Here you destroy all the Models, Texture and Desc. Set Layouts you created!
@@ -371,6 +462,7 @@ class SlotMachine : public BaseProject {
 		// Cleanup textures
 		TCharacter.cleanup();
 		TFloor.cleanup();
+		TBoundaries.cleanup();
 		TSphere1.cleanup();
 		TSphere1N.cleanup();
 		TSphere1M.cleanup();
@@ -386,11 +478,12 @@ class SlotMachine : public BaseProject {
 		// Cleanup models
 		MCharacter.cleanup();
 		MFloor.cleanup();
-		MKey.cleanup();
-		MSplash.cleanup();
+		//MKey.cleanup();
+		//MSplash.cleanup();
 		MSphere.cleanup();
 		MGameOver.cleanup();
 		MSphereGLTF.cleanup();
+		MBoundaries.cleanup();
 		// Cleanup descriptor set layouts
 		DSLMesh.cleanup();
 		DSLOverlay.cleanup();
@@ -402,8 +495,6 @@ class SlotMachine : public BaseProject {
 		POverlay.destroy();
 		PNormMap.destroy();
 		PNayar.destroy();
-
-
 	}
 	
 	// Here it is the creation of the command buffer:
@@ -412,69 +503,60 @@ class SlotMachine : public BaseProject {
 	
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage) {
 		switch(gameState){
-		case 0:
-			// sets global uniforms (see below fro parameters explanation)
-			DSGubo.bind(commandBuffer, PMesh, 0, currentImage);
+			case 0: {
+				// sets global uniforms (see below fro parameters explanation)
+				DSGubo.bind(commandBuffer, PMesh, 0, currentImage);
 
-			// binds the pipeline
-			PMesh.bind(commandBuffer);
-			// For a pipeline object, this command binds the corresponing pipeline to the command buffer passed in its parameter
+				PMesh.bind(commandBuffer);
 
-			// binds the model
-			MCharacter.bind(commandBuffer);
-			// For a Model object, this command binds the corresponing index and vertex buffer
-			// to the command buffer passed in its parameter
+				MCharacter.bind(commandBuffer);
 
-			// binds the data set
-			DSCharacter.bind(commandBuffer, PMesh, 1, currentImage);
-			// For a Dataset object, this command binds the corresponing dataset
-			// to the command buffer and pipeline passed in its first and second parameters.
-			// The third parameter is the number of the set being bound
-			// As described in the Vulkan tutorial, a different dataset is required for each image in the swap chain.
-			// This is done automatically in file Starter.hpp, however the command here needs also the index
-			// of the current image in the swap chain, passed in its last parameter
-
-			// record the drawing command in the command buffer
-			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MCharacter.indices.size()), 1, 0, 0, 0);
-			// the second parameter is the number of indexes to be drawn. For a Model object,
-			// this can be retrieved with the .indices.size() method.
-			
-			PNormMap.bind(commandBuffer);
-			MSphereGLTF.bind(commandBuffer);
-			DSSphere1.bind(commandBuffer, PNormMap, 1, currentImage);
-			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphereGLTF.indices.size()), WAVE_SIZE, 0, 0, 0);
-			DSSphere4.bind(commandBuffer, PNormMap, 1, currentImage);
-			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphereGLTF.indices.size()), WAVE_SIZE, 0, 0, 0);
-
-			PMesh.bind(commandBuffer);
-			MSphere.bind(commandBuffer);
-			DSSphere2.bind(commandBuffer, PMesh, 1, currentImage);
-			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphere.indices.size()), WAVE_SIZE, 0, 0, 0);
-
-			PNayar.bind(commandBuffer);
-			DSSphere3.bind(commandBuffer, PNayar, 1, currentImage);
-			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphere.indices.size()), WAVE_SIZE, 0, 0, 0);
-			
-			PMesh.bind(commandBuffer);
-			MFloor.bind(commandBuffer);
-			DSFloor.bind(commandBuffer, PMesh, 1, currentImage);
-			vkCmdDrawIndexed(commandBuffer,
-				static_cast<uint32_t>(MFloor.indices.size()), 1, 0, 0, 0);
-
-			
-			break;
-		case 1:
-			// sets global uniforms (see below fro parameters explanation)
-			
-			
-			break;
+				DSCharacter.bind(commandBuffer, PMesh, 1, currentImage);
+				
+				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MCharacter.indices.size()), 1, 0, 0, 0);
+	
+				
+				PNormMap.bind(commandBuffer);
+				MSphereGLTF.bind(commandBuffer);
+				DSSphere1.bind(commandBuffer, PNormMap, 1, currentImage);
+				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphereGLTF.indices.size()), WAVE_SIZE, 0, 0, 0);
+				DSSphere4.bind(commandBuffer, PNormMap, 1, currentImage);
+				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphereGLTF.indices.size()), WAVE_SIZE, 0, 0, 0);
+				
+				PMesh.bind(commandBuffer);
+				MSphere.bind(commandBuffer);
+				DSSphere2.bind(commandBuffer, PMesh, 1, currentImage);
+				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphere.indices.size()), WAVE_SIZE, 0, 0, 0);
+				
+				PNayar.bind(commandBuffer);
+				DSSphere3.bind(commandBuffer, PNayar, 1, currentImage);
+				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphere.indices.size()), WAVE_SIZE, 0, 0, 0);
+				
+				PMesh.bind(commandBuffer);
+				MBoundaries.bind(commandBuffer);
+				DSBoundaries.bind(commandBuffer, PMesh, 1, currentImage);
+				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MBoundaries.indices.size()), 1, 0, 0, 0);
+				
+				PMesh.bind(commandBuffer);
+				MFloor.bind(commandBuffer);
+				DSFloor.bind(commandBuffer, PMesh, 1, currentImage);
+				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MFloor.indices.size()), 1, 0, 0, 0);
+				
+				break;
+			}
+			case 1: {
+				// sets global uniforms (see below fro parameters explanation)
+				
+				
+				break;
+			}
 		}
+		
 		POverlay.bind(commandBuffer);
-			MGameOver.bind(commandBuffer);
-			DSGameOver.bind(commandBuffer, POverlay, 0, currentImage);
-			vkCmdDrawIndexed(commandBuffer,
-			static_cast<uint32_t>(MGameOver.indices.size()), 1, 0, 0, 0);
-
+		MGameOver.bind(commandBuffer);
+		DSGameOver.bind(commandBuffer, POverlay, 0, currentImage);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MGameOver.indices.size()), 1, 0, 0, 0);
+		
 	}
 
 	void initialiseCounters() {
@@ -519,7 +601,7 @@ class SlotMachine : public BaseProject {
 			deltaT2 = deltaT;
 			if(glfwGetKey(window, GLFW_KEY_Q) && once) {
 				timeWarp = 1;
-				once = 0;
+				once = 1;
 			}
 			
 			// getSixAxis() is defined in Starter.hpp in the base class.
@@ -654,36 +736,15 @@ class SlotMachine : public BaseProject {
 			
 				gubo.cosout = 0.75f + constant;
 				gubo.cosin = 0.80 + constant;
-
-				// Writes value to the GPU
+				
 				DSGubo.map(currentImage, &gubo, sizeof(gubo), 0);
-				// the .map() method of a DataSet object, requires the current image of the swap chain as first parameter
-				// the second parameter is the pointer to the C++ data structure to transfer to the GPU
-				// the third parameter is its size
-				// the fourth parameter is the location inside the descriptor set of this uniform block
 
 				uboCharacter.amb = 1.0f; uboCharacter.gamma = 180.0f; uboCharacter.sColor = glm::vec3(1.0f);
 				uboCharacter.mvpMat[0] = Prj * View * WorldMatrix;
 				uboCharacter.mMat[0] = WorldMatrix;
 				uboCharacter.nMat[0] = glm::inverse(glm::transpose(WorldMatrix));
 				DSCharacter.map(currentImage, &uboCharacter, sizeof(uboCharacter), 0);
-					/*
-						if(currentBall == wave.balls.end()) {
-							for(int i = currentBall->index; i < WAVE_SIZE; i++) {
-								mvpMat[i] = glm::mat4(0.0f);
-								mvpMat[i] = glm::mat4(0.0f);
-								mvpMat[i] = glm::mat4(0.0f);
-							}
-						}
-					*/
-
-				/*
-					FOR ball in balls updatePosition
-					FOR ball in balls -> remove those in which position is outOfBound
-									  -> shift ball index
-
-					FOR ball in balls  -> update mvpMat, mMat, nMat
-				*/
+	
 				for(currentBall = wave.balls.begin(); currentBall != wave.balls.end(); currentBall++) {
 					currentBall->updatePosition(deltaT2);
 					if (glm::distance(currentBall->position - glm::vec3(0.0f, currentBall->size, 0.0f), Pos) <= currentBall->size || gameTime > 120.0f) {
@@ -739,8 +800,15 @@ class SlotMachine : public BaseProject {
 				DSSphere2.map(currentImage, &uboSphere2, sizeof(uboSphere2), 0);
 				DSSphere3.map(currentImage, &uboSphere3, sizeof(uboSphere3), 0);
 				DSSphere4.map(currentImage, &uboSphere4, sizeof(uboSphere4), 0);
-			
+				
+				
 				glm::mat4 World = glm::mat4(1);
+				uboBoundaries.mvpMat[0] = Prj * View * World;
+				uboBoundaries.mMat[0] = World;
+				uboBoundaries.nMat[0] = glm::inverse(glm::transpose(World));
+				DSBoundaries.map(currentImage, &uboBoundaries, sizeof(uboBoundaries), 0);
+			
+				World = glm::mat4(1);
 				World = World * glm::translate(glm::mat4(1), glm::vec3(-20, 0, -20)) * glm::scale(glm::mat4(1), glm::vec3(50, 1, 50));
 				uboFloor.amb = 1.0f; uboFloor.gamma = 180.0f; uboFloor.sColor = glm::vec3(1.0f);
 				uboFloor.mvpMat[0] = Prj * View * World;
