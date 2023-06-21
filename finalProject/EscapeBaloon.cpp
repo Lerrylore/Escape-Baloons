@@ -90,7 +90,7 @@ class SlotMachine : public BaseProject {
 
 	// Pipelines [Shader couples]
 	Pipeline PMesh;
-	//Pipeline PBoundaries;
+	Pipeline PBoundaries;
 	Pipeline POverlay;
 	Pipeline PNormMap;
 	Pipeline PNayar;
@@ -140,18 +140,18 @@ class SlotMachine : public BaseProject {
 	void createBoundariesMesh(std::vector<VertexMesh> &vDef, std::vector<uint32_t> &vIdx) {
 		int vertexCount = 0;
 		
-		addBlock(-5.5f, 5.5f, 5.5f, 5.0f, vDef, vIdx, vertexCount);
-		addBlock(-5.5f, -5.5f, 5.5f, -5.0f, vDef, vIdx, vertexCount);
-		addBlock(-5.5f, -5.5f, -5.0f, 5.5f, vDef, vIdx, vertexCount);
-		addBlock(5.5f, -5.5f, 5.0f, 5.5f, vDef, vIdx, vertexCount);
+		addBlock(-5.5f, 5.5f, 5.0f, 5.0f, vDef, vIdx, vertexCount); //bottom
+		addBlock(-5.0f, -5.5f, 5.5f, -5.0f, vDef, vIdx, vertexCount);//top
+		addBlock(-5.5f, -5.5f, -5.0f, 5.0f, vDef, vIdx, vertexCount);//left
+		addBlock(5.5f, -5.0f, 5.0f, 5.5f, vDef, vIdx, vertexCount); //right
 	}
 	void addBlock(float firstX, float firstZ, float lastX, float lastZ, std::vector<VertexMesh> &vDef, std::vector<uint32_t> &vIdx, int &vertexCount) {
 		glm::vec2 uv = {0.0, 0.0};
 		
-		glm::vec3 A = {firstX, 0.5f, firstZ};
-		glm::vec3 B = {lastX, 0.5f, firstZ};
-		glm::vec3 C = {lastX, 0.5f, lastZ};
-		glm::vec3 D = {firstX, 0.5f, lastZ};
+		glm::vec3 A = {firstX, 2.5f, firstZ};
+		glm::vec3 B = {lastX, 2.5f, firstZ};
+		glm::vec3 C = {lastX, 2.5f, lastZ};
+		glm::vec3 D = {firstX, 2.5f, lastZ};
 		glm::vec3 E = {firstX, 0.1f, firstZ};
 		glm::vec3 F = {lastX, 0.1f, firstZ};
 		glm::vec3 G = {lastX, 0.1f, lastZ};
@@ -288,6 +288,8 @@ class SlotMachine : public BaseProject {
 		PNormMap.init(this, &VNorm, "shaders/NMVert.spv", "shaders/NMBlinnFrag.spv", {&DSLGubo, &DSLNormMap});
 		PNormMap.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, false);
 		PNayar.init(this, &VMesh, "shaders/MeshVert.spv", "shaders/NayarFrag.spv", {&DSLGubo, &DSLMesh});
+		PBoundaries.init(this, &VMesh, "shaders/MeshVert.spv", "shaders/FragTransparent.spv", {&DSLGubo, &DSLMesh});
+		PBoundaries.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, true);
 
 		MCharacter.init(this,   &VMesh, "Models/MainCharacter.obj", OBJ);
 		
@@ -334,6 +336,7 @@ class SlotMachine : public BaseProject {
 		POverlay.create();
 		PNormMap.create();
 		PNayar.create();
+		PBoundaries.create();
 		// Here you define the data set
 		DSCharacter.init(this, &DSLMesh, {
 					{0, UNIFORM, sizeof(MeshUniformBlock), nullptr},
@@ -391,6 +394,7 @@ class SlotMachine : public BaseProject {
 		POverlay.cleanup();
 		PNormMap.cleanup();
 		PNayar.cleanup();
+		PBoundaries.cleanup();
 		// Cleanup datasets
 		DSCharacter.cleanup();
 		DSSphere1.cleanup();
@@ -446,6 +450,7 @@ class SlotMachine : public BaseProject {
 		DSLGubo.cleanup();
 		
 		// Destroies the pipelines
+		PBoundaries.destroy();
 		PMesh.destroy();		
 		POverlay.destroy();
 		PNormMap.destroy();
@@ -481,15 +486,16 @@ class SlotMachine : public BaseProject {
 		DSSphere3.bind(commandBuffer, PNayar, 1, currentImage);
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphere.indices.size()), WAVE_SIZE, 0, 0, 0);
 		
-		PMesh.bind(commandBuffer);
-		MBoundaries.bind(commandBuffer);
-		DSBoundaries.bind(commandBuffer, PMesh, 1, currentImage);
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MBoundaries.indices.size()), 1, 0, 0, 0);
 		
 		PMesh.bind(commandBuffer);
 		MFloor.bind(commandBuffer);
 		DSFloor.bind(commandBuffer, PMesh, 1, currentImage);
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MFloor.indices.size()), 1, 0, 0, 0);
+
+		PBoundaries.bind(commandBuffer);
+		MBoundaries.bind(commandBuffer);
+		DSBoundaries.bind(commandBuffer, PBoundaries, 1, currentImage);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MBoundaries.indices.size()), 1, 0, 0, 0);
 
 		POverlay.bind(commandBuffer);
 		MStartGame.bind(commandBuffer);

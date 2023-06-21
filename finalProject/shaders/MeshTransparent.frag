@@ -47,6 +47,6 @@ void main() {
 	vec3 Specular = vec3(pow(clamp(dot(Norm, normalize(lightDir + EyeDir)),0.0,1.0), 175.0f));
 	vec3 Ambient = texture(tex, fragUV).rgb * 0.01f;
 	
-	outColor = vec4(clamp((Diffuse + Specular) * lightColor.rgb + Ambient,0.0,1.0), 1.0f);
+	outColor = vec4(clamp((Diffuse + Specular) * lightColor.rgb + Ambient,0.0,1.0), 0.5f);
 	
 }
