@@ -529,7 +529,12 @@ class SlotMachine : public BaseProject {
 		ubo->mMat[counter] = objectWorldMatrix;
 		ubo->nMat[counter] = glm::inverse(glm::transpose(objectWorldMatrix));
 	}
-
+	void resetAll() {
+		clearUbo(&uboSphere1,0);
+		clearUbo(&uboSphere2,0);
+		clearUbo(&uboSphere3,0);
+		clearUbo(&uboSphere4,0);
+	}
 	// Here is where you update the uniforms.
 	// Very likely this will be where you will be writing the logic of your application.
 	void updateUniformBuffer(uint32_t currentImage) {
@@ -538,7 +543,7 @@ class SlotMachine : public BaseProject {
 		if(glfwGetKey(window, GLFW_KEY_ESCAPE)) {
 			glfwSetWindowShouldClose(window, GL_TRUE);
 		}
-		
+		static auto startWarpTimeCD = std::chrono::high_resolution_clock::now();
 		// Integration with the timers and the controllers
 		static bool timeWarp = 0;
 		float deltaT;
@@ -549,12 +554,15 @@ class SlotMachine : public BaseProject {
 		bool fire = false;
 		getSixAxis(deltaT, m, r, fire);
 		deltaT2 = deltaT;
-
-		if(glfwGetKey(window, GLFW_KEY_Q) && once) {
+		GLFWgamepadstate state;
+		glfwGetGamepadState(GLFW_JOYSTICK_1, &state);
+		if((glfwGetKey(window, GLFW_KEY_Q) || state.buttons[GLFW_GAMEPAD_BUTTON_TRIANGLE]) && once ) {
 			timeWarp = 1;
-			once = 1;
+			startWarpTimeCD = std::chrono::high_resolution_clock::now();
+			once = 0;
+			printf("%f\n", timeWarp);
 		}
-		
+
 		// getSixAxis() is defined in Starter.hpp in the base class.
 		// It fills the float point variable passed in its first parameter with the time
 		// since the last call to the procedure.
@@ -572,12 +580,11 @@ class SlotMachine : public BaseProject {
 		float spawnTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - finalTime).count();
 
 		if (timeWarp) {
-			static auto startWarpTimeCD = std::chrono::high_resolution_clock::now();
 			warpTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startWarpTimeCD).count();
 			deltaT2 = deltaT2 / 10;
 			spawnTime = spawnTime / 10;
 		}
-
+		
 		if (warpTime > 5.0f){
 			timeWarp = 0;
 		}
@@ -599,7 +606,7 @@ class SlotMachine : public BaseProject {
 		glm::mat4 WorldMatrix;
 
 		static float yaw = 0.0f;
-		static float pitch = glm::radians(-65.0f);
+		static float pitch = glm::radians(-70.0f);
 		static float roll = 0.0f;
 		static float yaw2 = 0.0f;
 		// static variables for current angles
@@ -622,7 +629,7 @@ class SlotMachine : public BaseProject {
 
 		const float CamH = 2.4;
 		const float CamD = 7.5;
-		pitch += ROT_SPEED * r.x * deltaT / 4;
+		//pitch += ROT_SPEED * r.x * deltaT / 4;
 		//if (pitch <= minPitch) pitch = minPitch;
 		//if (pitch >= maxPitch) pitch = maxPitch;
 		//roll += ROT_SPEED * r.z * deltaT;
@@ -631,7 +638,7 @@ class SlotMachine : public BaseProject {
 		glm::vec3 uz = glm::vec3(glm::rotate(glm::mat4(1), yaw, glm::vec3(0, 1, 0)) * glm::vec4(0, 0, -1, 1));
 
 		Pos += ux * MOVE_SPEED * m.x * deltaT;
-		Pos += uy * MOVE_SPEED * m.y * deltaT;
+		//Pos += uy * MOVE_SPEED * m.y * deltaT;
 		Pos += uz * MOVE_SPEED * m.z * deltaT;
 
 		//constraints check
@@ -646,13 +653,12 @@ class SlotMachine : public BaseProject {
 		static glm::mat4 tempWorldMatrix = glm::mat4(1);
 		static glm::vec3 tempPos = glm::vec3(1);
 		float lamba = 10.0f;
-
+		
 		switch(gameState) {
 			case 0: {
-				if(glfwGetKey(window, GLFW_KEY_ENTER)) {
+				if(glfwGetKey(window, GLFW_KEY_ENTER) || state.buttons[GLFW_GAMEPAD_BUTTON_CROSS]) {
 					gameState = 1;
 				}
-
 				break;
 			}
 			case 1: {
@@ -770,6 +776,19 @@ class SlotMachine : public BaseProject {
 				
 				break;
 			}
+			case 2: {
+				if (glfwGetKey(window, GLFW_KEY_ENTER) || state.buttons[GLFW_GAMEPAD_BUTTON_CROSS]) {
+					resetAll();
+					Pos = StartingPosition;
+					wave.balls.clear();
+					gameState = 1;
+					once = 1;
+					timeWarp = 0;
+					auto start = std::chrono::high_resolution_clock::now();
+					auto finalTime = start;
+				}
+				break;
+			}
 		}
 
 		uboStartGame.visible = (gameState == 0) ? 1.0f : 0.0f;
@@ -779,6 +798,7 @@ class SlotMachine : public BaseProject {
 		DSGameOver.map(currentImage, &uboGameOver, sizeof(uboGameOver), 0);
 	}	
 };
+
 
 // This is the main: probably you do not need to touch this!
 int main() {
