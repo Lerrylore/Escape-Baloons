@@ -163,7 +163,7 @@ class SlotMachine : public BaseProject {
 					{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT},
 					{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT},
 					{3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}
-			});
+		});
 
 		// Vertex descriptors
 		VMesh.init(this, {
@@ -219,7 +219,7 @@ class SlotMachine : public BaseProject {
 				  {0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VertexNormMap, normal),
 				         sizeof(glm::vec3), NORMAL},
 				  {0, 2, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(VertexNormMap, tangent),
-				         sizeof(glm::vec3), TANGENT},
+				         sizeof(glm::vec4), TANGENT},
 				  {0, 3, VK_FORMAT_R32G32_SFLOAT, offsetof(VertexNormMap, texCoord),
 				         sizeof(glm::vec2), UV}
 				});
@@ -271,8 +271,8 @@ class SlotMachine : public BaseProject {
 		TSphere2.init(this, "textures/opal.jpeg");
 		TSphere3.init(this, "textures/dirt.jpg");
 		TSphere4.init(this, "textures/StylizedWoodPlanks_01/StylizedWoodPlanks_01_basecolor.jpg");
-		TSphere4N.init(this, "textures/StylizedWoodPlanks_01/StylizedWoodPlanks_01_normal.jpg");
-		TSphere4M.init(this, "textures/StylizedWoodPlanks_01/Wood_MRAO.png");
+		TSphere4N.init(this, "textures/StylizedWoodPlanks_01/StylizedWoodPlanks_01_normal.jpg", VK_FORMAT_R8G8B8A8_UNORM);
+		TSphere4M.init(this, "textures/StylizedWoodPlanks_01/Wood_MRAO.png", VK_FORMAT_R8G8B8A8_UNORM);
 		TGameOver.init(this, "textures/GameOver.png");
 		// Init local variables
 		CamH = 1.0f;
@@ -386,7 +386,7 @@ class SlotMachine : public BaseProject {
 		// Cleanup models
 		MCharacter.cleanup();
 		MFloor.cleanup();
-		MKey.cleanup();
+		MGameOver.cleanup();
 		MSplash.cleanup();
 		MSphere.cleanup();
 		MGameOver.cleanup();

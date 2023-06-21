@@ -139,6 +139,7 @@
       <AdditionalIncludeDirectories>C:\VulkanSDK\1.3.239.0\Include;C:\Users\Lerry\Documents\Visual Studio 2022\Libraries\glm-master;C:\Users\Lerry\Documents\Visual Studio 2022\Libraries\glfw-3.3.8.bin.WIN64\include;C:\Users\Lerry\OneDrive - Politecnico di Milano\Computer Graphics\Assignements\A01\headers;C:\Users\loren\Documents\Visual Studio 2022\Libraries\glm-master;C:\Users\loren\Documents\Visual Studio 2022\Libraries\glfw-3.3.8.bin.WIN64\include;C:\Users\loren\OneDrive - Politecnico di Milano\Computer Graphics\Assignements\A01\headers</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -148,6 +149,9 @@
       <AdditionalLibraryDirectories>C:\VulkanSDK\1.3.239.0\Lib;C:\Users\Lerry\Documents\Visual Studio 2022\Libraries\glfw-3.3.8.bin.WIN64\lib-vc2015;C:\Users\loren\Documents\Visual Studio 2022\Libraries\glfw-3.3.8.bin.WIN64\lib-vc2015;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <CustomBuildStep>
+      <Outputs>C:\Users\Lerry\OneDrive - Politecnico di Milano\Computer Graphics\Assignements\FinalProject\finalProject</Outputs>
+    </CustomBuildStep>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

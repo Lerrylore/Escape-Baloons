@@ -66,4 +66,5 @@ void main() {
 	vec3 Ambient = albedo * 0.05f * ao;
 	
 	outColor = vec4(clamp(0.95 * DiffSpec * lightColor.rgb + Ambient,0.0,1.0), 1.0f);
+	//outColor = vec4(vec3(clamp(dot(N,L), 0.0f, 1.0f)), 1.0f);
 }
