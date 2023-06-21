@@ -98,21 +98,21 @@ class SlotMachine : public BaseProject {
 	// Models, textures and Descriptors (values assigned to the uniforms)
 	// Please note that Model objects depends on the corresponding vertex structure
 	Model<VertexMesh> MCharacter, MFloor, MSphere, MBoundaries;
-	Model<VertexOverlay> MKey, MSplash, MGameOver;
+	Model<VertexOverlay> MKey, MSplash, MStartGame, MGameOver;
 	Model<VertexNormMap> MSphereGLTF;
-	DescriptorSet DSGubo, DSCharacter, DSSphere1, DSSphere2, DSSphere3, DSSphere4, DSSphereS, DSBall, DSFloor, DSBoundaries, DSGameOver;
-	Texture TCharacter, TFloor, TSphere1, TSphere2, TSphere3, TSphere4, TGameOver, TSphere1N, TSphere1M, TSphere4N, TSphere4M, TBoundaries;
+	DescriptorSet DSGubo, DSCharacter, DSSphere1, DSSphere2, DSSphere3, DSSphere4, DSSphereS, DSBall, DSFloor, DSBoundaries, DSStartGame, DSGameOver;
+	Texture TCharacter, TFloor, TSphere1, TSphere2, TSphere3, TSphere4, TSphere1N, TSphere1M, TSphere4N, TSphere4M, TBoundaries, TStartGame, TGameOver;
 	
 	// C++ storage for uniform variables
 	MeshUniformBlock uboCharacter, uboFloor, uboBoundaries, uboSphere1, uboSphere2, uboSphere3, uboSphere4, uboSphereS;
 	GlobalUniformBlock gubo;
-	OverlayUniformBlock uboKey, uboSplash, uboGameOver;
+	OverlayUniformBlock uboKey, uboSplash, uboStartGame, uboGameOver;
 
 
 	// Other application parameters
 	float CamH, CamRadius, CamPitch, CamYaw;
 	MeshCounters meshCounters;
-	int gameState;
+	int gameState = 0;
 
 
 	// Here you set the main application parameters
@@ -137,34 +137,7 @@ class SlotMachine : public BaseProject {
 		Ar = (float)w / (float)h;
 	}
 	
-	inline void addBlockOld(int startColumn, int startRow, int lastColumn, int lastRow,
-						 std::vector<float> &vPos, std::vector<int> &vIdx, int &vertexCounter) {
-		vPos.push_back(startColumn); vPos.push_back(1.0); vPos.push_back(startRow); vertexCounter++; //1
-		vPos.push_back(lastColumn); vPos.push_back(1.0);  vPos.push_back(startRow); vertexCounter++; //2
-		vPos.push_back(startColumn); vPos.push_back(1.0); vPos.push_back(lastRow);  vertexCounter++; //3
-		vPos.push_back(lastColumn); vPos.push_back(1.0);  vPos.push_back(lastRow);  vertexCounter++; //4
-		
-		vPos.push_back(startColumn); vPos.push_back(0.0); vPos.push_back(startRow); vertexCounter++; //5
-		vPos.push_back(lastColumn); vPos.push_back(0.0);  vPos.push_back(startRow); vertexCounter++; //6
-		vPos.push_back(startColumn); vPos.push_back(0.0); vPos.push_back(lastRow);  vertexCounter++; //7
-		vPos.push_back(lastColumn); vPos.push_back(0.0);  vPos.push_back(lastRow);  vertexCounter++; //8
-		
-		vIdx.push_back(vertexCounter - 8); vIdx.push_back(vertexCounter - 7); vIdx.push_back(vertexCounter - 6);
-		vIdx.push_back(vertexCounter - 7); vIdx.push_back(vertexCounter - 6); vIdx.push_back(vertexCounter - 5);
-		
-		vIdx.push_back(vertexCounter - 8); vIdx.push_back(vertexCounter - 6); vIdx.push_back(vertexCounter - 4);
-		vIdx.push_back(vertexCounter - 6); vIdx.push_back(vertexCounter - 4); vIdx.push_back(vertexCounter - 2);
-		
-		vIdx.push_back(vertexCounter - 8); vIdx.push_back(vertexCounter - 7); vIdx.push_back(vertexCounter - 3);
-		vIdx.push_back(vertexCounter - 8); vIdx.push_back(vertexCounter - 4); vIdx.push_back(vertexCounter - 3);
-		
-		vIdx.push_back(vertexCounter - 6); vIdx.push_back(vertexCounter - 2); vIdx.push_back(vertexCounter - 1);
-		vIdx.push_back(vertexCounter - 6); vIdx.push_back(vertexCounter - 5); vIdx.push_back(vertexCounter - 1);
-		
-		vIdx.push_back(vertexCounter - 7); vIdx.push_back(vertexCounter - 5); vIdx.push_back(vertexCounter - 3);
-		vIdx.push_back(vertexCounter - 5); vIdx.push_back(vertexCounter - 3); vIdx.push_back(vertexCounter - 1);
-	}
-	
+	//should implement proper logic for the shading
 	void addBlock(float firstX, float firstZ, float lastX, float lastZ, std::vector<VertexMesh> &vDef, std::vector<uint32_t> &vIdx, int &vertexCounter) {
 		glm::vec2 uv = {0.0, 0.0};
 		
@@ -206,7 +179,7 @@ class SlotMachine : public BaseProject {
 	}
 	
 	///to depre
-	void createCubeMesh(std::vector<VertexMesh> &vDef, std::vector<uint32_t> &vIdx) {
+	void createCubeMeshOld(std::vector<VertexMesh> &vDef, std::vector<uint32_t> &vIdx) {
 		int vertexCount = 0;
 		
 		glm::vec3 A = {0.0f, 1.0f, 0.0f};
@@ -276,6 +249,16 @@ class SlotMachine : public BaseProject {
 		vIdx.push_back(vertexCount - 3); vIdx.push_back(vertexCount - 2); vIdx.push_back(vertexCount - 1);	// Second triangle
 	}
 	
+	void createImageIndexed(std::vector<VertexOverlay> &vDef, std::vector<uint32_t> &vIdx) {
+		vDef.push_back({{-1.0f, -1.0f}, {0.0f, 0.0f}});
+		vDef.push_back({{-1.0f, 1.0f}, {0.0f, 1.0f}});
+		vDef.push_back({{1.0f, -1.0f}, {1.0f, 0.0f}});
+		vDef.push_back({{1.0f, 1.0f}, {1.0f, 1.0f}});
+
+		vIdx.push_back(0); vIdx.push_back(1); vIdx.push_back(2); 
+		vIdx.push_back(1); vIdx.push_back(2); vIdx.push_back(3); 
+	}
+
 	// Here you load and setup all your Vulkan Models and Texutures.
 	// Here you also create your Descriptor set layouts and load the shaders for the pipelines
 	void localInit() {
@@ -352,8 +335,10 @@ class SlotMachine : public BaseProject {
 		
 		MSphereGLTF.init(this, &VNorm, "Models/Sphere.gltf", GLTF);
 
-		MGameOver.vertices = {{{-1.0f, -1.0f}, {0.0f, 0.0f}}, {{-1.0f, 1.0f}, {0.0f,1.0f}}, {{ 1.0f,-1.0f}, {1.0f,0.0f}}, {{ 1.0f, 1.0f}, {1.0f,1.0f}}};
-		MGameOver.indices = {0, 1, 2,    1, 2, 3};
+		createImageIndexed(MStartGame.vertices, MStartGame.indices);
+		MStartGame.initMesh(this, &VOverlay);
+
+		createImageIndexed(MGameOver.vertices, MGameOver.indices);
 		MGameOver.initMesh(this, &VOverlay);
 
 		TCharacter.init(this,   "textures/red_Base_Color.png");
@@ -367,6 +352,7 @@ class SlotMachine : public BaseProject {
 		TSphere4.init(this, "textures/StylizedWoodPlanks_01/StylizedWoodPlanks_01_basecolor.jpg");
 		TSphere4N.init(this, "textures/StylizedWoodPlanks_01/StylizedWoodPlanks_01_normal.jpg", VK_FORMAT_R8G8B8A8_UNORM);
 		TSphere4M.init(this, "textures/StylizedWoodPlanks_01/Wood_MRAO.png", VK_FORMAT_R8G8B8A8_UNORM);
+		TStartGame.init(this, "textures/StartGame.jpeg");
 		TGameOver.init(this, "textures/GameOver.png");
 		
 		// Init local variables
@@ -375,8 +361,6 @@ class SlotMachine : public BaseProject {
 		CamPitch = glm::radians(15.f);
 		CamYaw = glm::radians(30.f);
 		gameState = 0;
-
-
 	}
 	
 	// Here you create your pipelines and Descriptor Sets!
@@ -424,6 +408,10 @@ class SlotMachine : public BaseProject {
 		DSGubo.init(this, &DSLGubo, {
 					{0, UNIFORM, sizeof(GlobalUniformBlock), nullptr}
 				});
+		DSStartGame.init(this, &DSLMesh, {
+					{0, UNIFORM, sizeof(OverlayUniformBlock), nullptr},
+					{1, TEXTURE, 0, &TStartGame}
+				});
 		DSGameOver.init(this, &DSLMesh, {
 					{0, UNIFORM, sizeof(OverlayUniformBlock), nullptr},
 					{1, TEXTURE, 0, &TGameOver}
@@ -451,6 +439,7 @@ class SlotMachine : public BaseProject {
 		DSBall.cleanup();
 
 		DSGubo.cleanup();
+		DSStartGame.cleanup();
 		DSGameOver.cleanup();
 	}
 
@@ -472,19 +461,19 @@ class SlotMachine : public BaseProject {
 		TSphere2.cleanup();
 		TSphere3.cleanup();
 		TSphere4.cleanup();
+		TStartGame.cleanup();
 		TGameOver.cleanup();
 
 		
 		// Cleanup models
 		MCharacter.cleanup();
 		MFloor.cleanup();
-		//MKey.cleanup();
-		//MSplash.cleanup();
 		MSphere.cleanup();
+		MStartGame.cleanup();
 		MGameOver.cleanup();
 		MSphereGLTF.cleanup();
 		MBoundaries.cleanup();
-		// Cleanup descriptor set layouts
+		
 		DSLMesh.cleanup();
 		DSLOverlay.cleanup();
 		DSLNormMap.cleanup();
@@ -502,55 +491,44 @@ class SlotMachine : public BaseProject {
 	// with their buffers and textures
 	
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage) {
-		switch(gameState){
-			case 0: {
-				// sets global uniforms (see below fro parameters explanation)
-				DSGubo.bind(commandBuffer, PMesh, 0, currentImage);
+		// sets global uniforms (see below fro parameters explanation)
+		DSGubo.bind(commandBuffer, PMesh, 0, currentImage);
 
-				PMesh.bind(commandBuffer);
+		PMesh.bind(commandBuffer);
+		MCharacter.bind(commandBuffer);
+		DSCharacter.bind(commandBuffer, PMesh, 1, currentImage);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MCharacter.indices.size()), 1, 0, 0, 0);
+		
+		PNormMap.bind(commandBuffer);
+		MSphereGLTF.bind(commandBuffer);
+		DSSphere1.bind(commandBuffer, PNormMap, 1, currentImage);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphereGLTF.indices.size()), WAVE_SIZE, 0, 0, 0);
+		DSSphere4.bind(commandBuffer, PNormMap, 1, currentImage);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphereGLTF.indices.size()), WAVE_SIZE, 0, 0, 0);
+		
+		PMesh.bind(commandBuffer);
+		MSphere.bind(commandBuffer);
+		DSSphere2.bind(commandBuffer, PMesh, 1, currentImage);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphere.indices.size()), WAVE_SIZE, 0, 0, 0);
+		
+		PNayar.bind(commandBuffer);
+		DSSphere3.bind(commandBuffer, PNayar, 1, currentImage);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphere.indices.size()), WAVE_SIZE, 0, 0, 0);
+		
+		PMesh.bind(commandBuffer);
+		MBoundaries.bind(commandBuffer);
+		DSBoundaries.bind(commandBuffer, PMesh, 1, currentImage);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MBoundaries.indices.size()), 1, 0, 0, 0);
+		
+		PMesh.bind(commandBuffer);
+		MFloor.bind(commandBuffer);
+		DSFloor.bind(commandBuffer, PMesh, 1, currentImage);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MFloor.indices.size()), 1, 0, 0, 0);
 
-				MCharacter.bind(commandBuffer);
-
-				DSCharacter.bind(commandBuffer, PMesh, 1, currentImage);
-				
-				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MCharacter.indices.size()), 1, 0, 0, 0);
-	
-				
-				PNormMap.bind(commandBuffer);
-				MSphereGLTF.bind(commandBuffer);
-				DSSphere1.bind(commandBuffer, PNormMap, 1, currentImage);
-				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphereGLTF.indices.size()), WAVE_SIZE, 0, 0, 0);
-				DSSphere4.bind(commandBuffer, PNormMap, 1, currentImage);
-				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphereGLTF.indices.size()), WAVE_SIZE, 0, 0, 0);
-				
-				PMesh.bind(commandBuffer);
-				MSphere.bind(commandBuffer);
-				DSSphere2.bind(commandBuffer, PMesh, 1, currentImage);
-				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphere.indices.size()), WAVE_SIZE, 0, 0, 0);
-				
-				PNayar.bind(commandBuffer);
-				DSSphere3.bind(commandBuffer, PNayar, 1, currentImage);
-				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MSphere.indices.size()), WAVE_SIZE, 0, 0, 0);
-				
-				PMesh.bind(commandBuffer);
-				MBoundaries.bind(commandBuffer);
-				DSBoundaries.bind(commandBuffer, PMesh, 1, currentImage);
-				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MBoundaries.indices.size()), 1, 0, 0, 0);
-				
-				PMesh.bind(commandBuffer);
-				MFloor.bind(commandBuffer);
-				DSFloor.bind(commandBuffer, PMesh, 1, currentImage);
-				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MFloor.indices.size()), 1, 0, 0, 0);
-				
-				break;
-			}
-			case 1: {
-				// sets global uniforms (see below fro parameters explanation)
-				
-				
-				break;
-			}
-		}
+		POverlay.bind(commandBuffer);
+		MStartGame.bind(commandBuffer);
+		DSStartGame.bind(commandBuffer, POverlay, 0, currentImage);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MStartGame.indices.size()), 1, 0, 0, 0);
 		
 		POverlay.bind(commandBuffer);
 		MGameOver.bind(commandBuffer);
@@ -589,120 +567,123 @@ class SlotMachine : public BaseProject {
 			glfwSetWindowShouldClose(window, GL_TRUE);
 		}
 		
-			// Integration with the timers and the controllers
-			static bool timeWarp = 0;
-			float deltaT;
-			float deltaT2;
-			float warpTime = 0;
-			static bool once = 1;
-			glm::vec3 m = glm::vec3(0.0f), r = glm::vec3(0.0f);
-			bool fire = false;
-			getSixAxis(deltaT, m, r, fire);
-			deltaT2 = deltaT;
-			if(glfwGetKey(window, GLFW_KEY_Q) && once) {
-				timeWarp = 1;
-				once = 1;
-			}
-			
-			// getSixAxis() is defined in Starter.hpp in the base class.
-			// It fills the float point variable passed in its first parameter with the time
-			// since the last call to the procedure.
-			// It fills vec3 in the second parameters, with three values in the -1,1 range corresponding
-			// to motion (with left stick of the gamepad, or ASWD + RF keys on the keyboard)
-			// It fills vec3 in the third parameters, with three values in the -1,1 range corresponding
-			// to motion (with right stick of the gamepad, or Arrow keys + QE keys on the keyboard, or mouse)
-			// If fills the last boolean variable with true if fire has been pressed:
-			//          SPACE on the keyboard, A or B button on the Gamepad, Right mouse button
+		// Integration with the timers and the controllers
+		static bool timeWarp = 0;
+		float deltaT;
+		float deltaT2;
+		float warpTime = 0;
+		static bool once = 1;
+		glm::vec3 m = glm::vec3(0.0f), r = glm::vec3(0.0f);
+		bool fire = false;
+		getSixAxis(deltaT, m, r, fire);
+		deltaT2 = deltaT;
 
-			static auto start = std::chrono::high_resolution_clock::now();
-			auto currentTime = std::chrono::high_resolution_clock::now();
-			static auto finalTime = start;
-			gameTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - start).count(); /*TIMER IN SECONDI*/
-			float spawnTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - finalTime).count();
+		if(glfwGetKey(window, GLFW_KEY_Q) && once) {
+			timeWarp = 1;
+			once = 1;
+		}
+		
+		// getSixAxis() is defined in Starter.hpp in the base class.
+		// It fills the float point variable passed in its first parameter with the time
+		// since the last call to the procedure.
+		// It fills vec3 in the second parameters, with three values in the -1,1 range corresponding
+		// to motion (with left stick of the gamepad, or ASWD + RF keys on the keyboard)
+		// It fills vec3 in the third parameters, with three values in the -1,1 range corresponding
+		// to motion (with right stick of the gamepad, or Arrow keys + QE keys on the keyboard, or mouse)
+		// If fills the last boolean variable with true if fire has been pressed:
+		//          SPACE on the keyboard, A or B button on the Gamepad, Right mouse button
 
-			if (timeWarp) {
-				static auto startWarpTimeCD = std::chrono::high_resolution_clock::now();
-				warpTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startWarpTimeCD).count();
-				deltaT2 = deltaT2 / 10;
-				spawnTime = spawnTime / 10;
-			}
+		static auto start = std::chrono::high_resolution_clock::now();
+		auto currentTime = std::chrono::high_resolution_clock::now();
+		static auto finalTime = start;
+		gameTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - start).count(); /*TIMER IN SECONDI*/
+		float spawnTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - finalTime).count();
 
-			if (warpTime > 5.0f){
-				timeWarp = 0;
-			}
+		if (timeWarp) {
+			static auto startWarpTimeCD = std::chrono::high_resolution_clock::now();
+			warpTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startWarpTimeCD).count();
+			deltaT2 = deltaT2 / 10;
+			spawnTime = spawnTime / 10;
+		}
 
-			static glm::vec3 minArea = glm::vec3(-10.0f, 0.0f, -10.0f);
-			static glm::vec3 maxArea = glm::vec3(10.0f, 0.0f, 10.0f);
+		if (warpTime > 5.0f){
+			timeWarp = 0;
+		}
 
-			// To debounce the pressing of the fire button, and start the event when the key is released
-			const glm::vec3 StartingPosition = glm::vec3(3.0, 0.0, -2.0);
-			static Wave wave = Wave(15, 1.0f, minArea, maxArea);
-			//static Ball ball = Ball(StartingPosition, deltaT);
+		static glm::vec3 minArea = glm::vec3(-10.0f, 0.0f, -10.0f);
+		static glm::vec3 maxArea = glm::vec3(10.0f, 0.0f, 10.0f);
 
-			std::list<Ball>::iterator tempBall;
-			// Parameters: wheels and handle speed and range
-			static glm::vec3 Pos = StartingPosition;
-			static glm::vec3 newPos;
-			static glm::vec3 oldPos = Pos;
+		const glm::vec3 StartingPosition = glm::vec3(3.0, 0.0, -2.0);
+		static Wave wave = Wave(15, 1.0f, minArea, maxArea);
 
-			float tolerance = 0.05f; // Tolerance value for comparison
-			/* 
-			*/
+		std::list<Ball>::iterator tempBall;
+		
+		static glm::vec3 Pos = StartingPosition;
+		static glm::vec3 newPos;
+		static glm::vec3 oldPos = Pos;
 
+		float tolerance = 0.05f; // Tolerance value for comparison
 
-			glm::mat4 WorldMatrix;
+		glm::mat4 WorldMatrix;
 
-			static float yaw = 0.0f;
-			static float pitch = glm::radians(-65.0f);
-			static float roll = 0.0f;
-			static float yaw2 = 0.0f;
-			// static variables for current angles
-			float constant = gameTime / 600; //angle of spotlight
-			// Parameters
-			// Camera FOV-y, Near Plane and Far Plane
-			const float FOVy = glm::radians(45.0f);
-			const float nearPlane = 0.1f;
-			const float farPlane = 100.0f;
+		static float yaw = 0.0f;
+		static float pitch = glm::radians(-65.0f);
+		static float roll = 0.0f;
+		static float yaw2 = 0.0f;
+		// static variables for current angles
+		float constant = gameTime / 600; //angle of spotlight
+		// Parameters
+		// Camera FOV-y, Near Plane and Far Plane
+		const float FOVy = glm::radians(45.0f);
+		const float nearPlane = 0.1f;
+		const float farPlane = 100.0f;
 
-			const float ROT_SPEED = glm::radians(90.0f);
-			const float MOVE_SPEED = 5.0f;
+		const float ROT_SPEED = glm::radians(90.0f);
+		const float MOVE_SPEED = 5.0f;
 
-			float correctionAngle = glm::radians(90.0f) + yaw;
-			if (m.x == 0 && m.z > 0) yaw2 = glm::radians(90.0f) + correctionAngle;
-			if (m.x == 0 && m.z < 0) yaw2 = glm::radians(-90.0f) + correctionAngle;
-			if (m.x < 0 && m.z >= 0) yaw2 = atan(m.z / m.x) + glm::radians(180.0f) + correctionAngle;
-			if (m.x < 0 && m.z < 0) yaw2 = atan(m.z / m.x) - glm::radians(180.0f) + correctionAngle;
-			if (m.x > 0) yaw2 = atan(m.z / m.x) + correctionAngle;
+		float correctionAngle = glm::radians(90.0f) + yaw;
+		if (m.x == 0 && m.z > 0) yaw2 = glm::radians(90.0f) + correctionAngle;
+		if (m.x == 0 && m.z < 0) yaw2 = glm::radians(-90.0f) + correctionAngle;
+		if (m.x < 0 && m.z >= 0) yaw2 = atan(m.z / m.x) + glm::radians(180.0f) + correctionAngle;
+		if (m.x < 0 && m.z < 0) yaw2 = atan(m.z / m.x) - glm::radians(180.0f) + correctionAngle;
+		if (m.x > 0) yaw2 = atan(m.z / m.x) + correctionAngle;
 
-			const float CamH = 2.4;
-			const float CamD = 7.5;
-			pitch += ROT_SPEED * r.x * deltaT / 4;
-			//if (pitch <= minPitch) pitch = minPitch;
-			//if (pitch >= maxPitch) pitch = maxPitch;
-			//roll += ROT_SPEED * r.z * deltaT;
-			glm::vec3 ux = glm::vec3(glm::rotate(glm::mat4(1), yaw, glm::vec3(0, 1, 0)) * glm::vec4(1, 0, 0, 1));
-			glm::vec3 uy = glm::vec3(0, 1, 0);
-			glm::vec3 uz = glm::vec3(glm::rotate(glm::mat4(1), yaw, glm::vec3(0, 1, 0)) * glm::vec4(0, 0, -1, 1));
+		const float CamH = 2.4;
+		const float CamD = 7.5;
+		pitch += ROT_SPEED * r.x * deltaT / 4;
+		//if (pitch <= minPitch) pitch = minPitch;
+		//if (pitch >= maxPitch) pitch = maxPitch;
+		//roll += ROT_SPEED * r.z * deltaT;
+		glm::vec3 ux = glm::vec3(glm::rotate(glm::mat4(1), yaw, glm::vec3(0, 1, 0)) * glm::vec4(1, 0, 0, 1));
+		glm::vec3 uy = glm::vec3(0, 1, 0);
+		glm::vec3 uz = glm::vec3(glm::rotate(glm::mat4(1), yaw, glm::vec3(0, 1, 0)) * glm::vec4(0, 0, -1, 1));
 
-			Pos += ux * MOVE_SPEED * m.x * deltaT;
-			Pos += uy * MOVE_SPEED * m.y * deltaT;
-			Pos += uz * MOVE_SPEED * m.z * deltaT;
+		Pos += ux * MOVE_SPEED * m.x * deltaT;
+		Pos += uy * MOVE_SPEED * m.y * deltaT;
+		Pos += uz * MOVE_SPEED * m.z * deltaT;
 
-			//constraints check
-			if (Pos.y <= 0) Pos.y = 0;
-			if (Pos.y > 0 && m.y == 0) Pos.y -= 0.01;
-			if (Pos.x > 5.0f) Pos.x = 5.0f;
-			if (Pos.x < -5.0f) Pos.x = -5.0f;
-			if (Pos.z > 5.0f) Pos.z = 5.0f;
-			if (Pos.z < -5.0f) Pos.z = -5.0f;
-			//code to move objects around
-			std::list<Ball>::iterator currentBall;
-			static glm::mat4 tempWorldMatrix = glm::mat4(1);
-			static glm::vec3 tempPos = glm::vec3(1);
-			float lamba = 10.0f;
-			switch(gameState)
-			{
+		//constraints check
+		if (Pos.y <= 0) Pos.y = 0;
+		if (Pos.y > 0 && m.y == 0) Pos.y -= 0.01;
+		if (Pos.x > 5.0f) Pos.x = 5.0f;
+		if (Pos.x < -5.0f) Pos.x = -5.0f;
+		if (Pos.z > 5.0f) Pos.z = 5.0f;
+		if (Pos.z < -5.0f) Pos.z = -5.0f;
+		
+		std::list<Ball>::iterator currentBall;
+		static glm::mat4 tempWorldMatrix = glm::mat4(1);
+		static glm::vec3 tempPos = glm::vec3(1);
+		float lamba = 10.0f;
+
+		switch(gameState) {
 			case 0: {
+				if(glfwGetKey(window, GLFW_KEY_ENTER)) {
+					gameState = 1;
+				}
+
+				break;
+			}
+			case 1: {
 				if (spawnTime >= 1.0f || !flaggswag) {
 					glm::vec3 positionToTrack = Pos;
 					wave.addBall(positionToTrack);
@@ -748,8 +729,7 @@ class SlotMachine : public BaseProject {
 				for(currentBall = wave.balls.begin(); currentBall != wave.balls.end(); currentBall++) {
 					currentBall->updatePosition(deltaT2);
 					if (glm::distance(currentBall->position - glm::vec3(0.0f, currentBall->size, 0.0f), Pos) <= currentBall->size || gameTime > 120.0f) {
-							gameState = 1;
-						
+						gameState = 2;
 					}
 				}
 				wave.removeOutOfBoundBalls();
@@ -790,6 +770,7 @@ class SlotMachine : public BaseProject {
 					clearUbo(&uboSphere3, 0);
 					clearUbo(&uboSphere4, 0);
 				}
+
 				uboSphereS.amb = 1.0f; uboSphereS.gamma = 180.0f; uboSphereS.sColor = glm::vec3(1.0f);
 				tempPos += glm::vec3(0.1f*deltaT,0,0);
 				tempWorldMatrix =  glm::translate(glm::mat4(1.0), tempPos);
@@ -800,7 +781,6 @@ class SlotMachine : public BaseProject {
 				DSSphere2.map(currentImage, &uboSphere2, sizeof(uboSphere2), 0);
 				DSSphere3.map(currentImage, &uboSphere3, sizeof(uboSphere3), 0);
 				DSSphere4.map(currentImage, &uboSphere4, sizeof(uboSphere4), 0);
-				
 				
 				glm::mat4 World = glm::mat4(1);
 				uboBoundaries.mvpMat[0] = Prj * View * World;
@@ -818,12 +798,13 @@ class SlotMachine : public BaseProject {
 				
 				break;
 			}
-			case 1: {
-				uboGameOver.visible = (gameState == 1) ? 1.0f : 0.0f;
-				DSGameOver.map(currentImage, &uboGameOver, sizeof(uboGameOver), 0);
-				break;
-			}
 		}
+
+		uboStartGame.visible = (gameState == 0) ? 1.0f : 0.0f;
+		DSStartGame.map(currentImage, &uboStartGame, sizeof(uboStartGame), 0);
+
+		uboGameOver.visible = (gameState == 2) ? 1.0f : 0.0f;
+		DSGameOver.map(currentImage, &uboGameOver, sizeof(uboGameOver), 0);
 	}	
 };
 
