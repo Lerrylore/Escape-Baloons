@@ -136,62 +136,26 @@ class SlotMachine : public BaseProject {
 	void onWindowResize(int w, int h) {
 		Ar = (float)w / (float)h;
 	}
-	
-	//should implement proper logic for the shading
-	void addBlock(float firstX, float firstZ, float lastX, float lastZ, std::vector<VertexMesh> &vDef, std::vector<uint32_t> &vIdx, int &vertexCounter) {
-		glm::vec2 uv = {0.0, 0.0};
-		
-		vDef.push_back({ {firstX, 0.5, firstZ}, {0.0f, 1.0f, 0.0f}, uv });
-		vDef.push_back({ {lastX, 0.5, firstZ}, {0.0f, 1.0f, 0.0f}, uv });
-		vDef.push_back({ {firstX, 0.5, lastZ}, {0.0f, 1.0f, 0.0f}, uv });
-		vDef.push_back({ {lastX, 0.5, lastZ}, {0.0f, 1.0f, 0.0f}, uv });
-		
-		vDef.push_back({ {firstX, 0.1, firstZ}, {0.0f, 1.0f, 0.0f}, uv });
-		vDef.push_back({ {lastX, 0.1, firstZ}, {0.0f, 1.0f, 0.0f}, uv });
-		vDef.push_back({ {firstX, 0.1, lastZ}, {0.0f, 1.0f, 0.0f}, uv });
-		vDef.push_back({ {lastX, 0.1, lastZ}, {0.0f, 1.0f, 0.0f}, uv });
-		
-		vertexCounter += 8;
-		vIdx.push_back(vertexCounter - 8); vIdx.push_back(vertexCounter - 7); vIdx.push_back(vertexCounter - 6);
-		vIdx.push_back(vertexCounter - 7); vIdx.push_back(vertexCounter - 6); vIdx.push_back(vertexCounter - 5);
-		
-		vIdx.push_back(vertexCounter - 8); vIdx.push_back(vertexCounter - 6); vIdx.push_back(vertexCounter - 4);
-		vIdx.push_back(vertexCounter - 6); vIdx.push_back(vertexCounter - 4); vIdx.push_back(vertexCounter - 2);
-		
-		vIdx.push_back(vertexCounter - 8); vIdx.push_back(vertexCounter - 7); vIdx.push_back(vertexCounter - 3);
-		vIdx.push_back(vertexCounter - 8); vIdx.push_back(vertexCounter - 4); vIdx.push_back(vertexCounter - 3);
-		
-		vIdx.push_back(vertexCounter - 6); vIdx.push_back(vertexCounter - 2); vIdx.push_back(vertexCounter - 1);
-		vIdx.push_back(vertexCounter - 6); vIdx.push_back(vertexCounter - 5); vIdx.push_back(vertexCounter - 1);
-		
-		vIdx.push_back(vertexCounter - 7); vIdx.push_back(vertexCounter - 5); vIdx.push_back(vertexCounter - 3);
-		vIdx.push_back(vertexCounter - 5); vIdx.push_back(vertexCounter - 3); vIdx.push_back(vertexCounter - 1);
-		
-	}
-	
+
 	void createBoundariesMesh(std::vector<VertexMesh> &vDef, std::vector<uint32_t> &vIdx) {
-		int vertexCounter = 0;
-		
-		addBlock(-5.5f, 5.5f, 5.5f, 5.0f, vDef, vIdx, vertexCounter);
-		addBlock(-5.5f, -5.5f, 5.5f, -5.0f, vDef, vIdx, vertexCounter);
-		addBlock(-5.5f, -5.5f, -5.0f, 5.5f, vDef, vIdx, vertexCounter);
-		addBlock(5.5f, -5.5f, 5.0f, 5.5f, vDef, vIdx, vertexCounter);
-	}
-	
-	///to depre
-	void createCubeMeshOld(std::vector<VertexMesh> &vDef, std::vector<uint32_t> &vIdx) {
 		int vertexCount = 0;
 		
-		glm::vec3 A = {0.0f, 1.0f, 0.0f};
-		glm::vec3 B = {1.0f, 1.0f, 0.0f};
-		glm::vec3 C = {1.0f, 1.0f, 1.0f};
-		glm::vec3 D = {0.0f, 1.0f, 1.0f};
-		glm::vec3 E = {0.0f, 0.0f, 0.0f};
-		glm::vec3 F = {1.0f, 0.0f, 0.0f};
-		glm::vec3 G = {1.0f, 0.0f, 1.0f};
-		glm::vec3 H = {0.0f, 0.0f, 1.0f};
-		
+		addBlock(-5.5f, 5.5f, 5.5f, 5.0f, vDef, vIdx, vertexCount);
+		addBlock(-5.5f, -5.5f, 5.5f, -5.0f, vDef, vIdx, vertexCount);
+		addBlock(-5.5f, -5.5f, -5.0f, 5.5f, vDef, vIdx, vertexCount);
+		addBlock(5.5f, -5.5f, 5.0f, 5.5f, vDef, vIdx, vertexCount);
+	}
+	void addBlock(float firstX, float firstZ, float lastX, float lastZ, std::vector<VertexMesh> &vDef, std::vector<uint32_t> &vIdx, int &vertexCount) {
 		glm::vec2 uv = {0.0, 0.0};
+		
+		glm::vec3 A = {firstX, 0.5f, firstZ};
+		glm::vec3 B = {lastX, 0.5f, firstZ};
+		glm::vec3 C = {lastX, 0.5f, lastZ};
+		glm::vec3 D = {firstX, 0.5f, lastZ};
+		glm::vec3 E = {firstX, 0.1f, firstZ};
+		glm::vec3 F = {lastX, 0.1f, firstZ};
+		glm::vec3 G = {lastX, 0.1f, lastZ};
+		glm::vec3 H = {firstX, 0.1f, lastZ};
 		
 		//face up
 		vDef.push_back({ A, {0.0f, 1.0f, 0.0f}, uv });
@@ -613,7 +577,7 @@ class SlotMachine : public BaseProject {
 		static glm::vec3 minArea = glm::vec3(-10.0f, 0.0f, -10.0f);
 		static glm::vec3 maxArea = glm::vec3(10.0f, 0.0f, 10.0f);
 
-		const glm::vec3 StartingPosition = glm::vec3(3.0, 0.0, -2.0);
+		const glm::vec3 StartingPosition = glm::vec3(0.0, 0.0, 0.0);
 		static Wave wave = Wave(15, 1.0f, minArea, maxArea);
 
 		std::list<Ball>::iterator tempBall;
