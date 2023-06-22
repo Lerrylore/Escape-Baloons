@@ -98,15 +98,15 @@ class SlotMachine : public BaseProject {
 	// Models, textures and Descriptors (values assigned to the uniforms)
 	// Please note that Model objects depends on the corresponding vertex structure
 	Model<VertexMesh> MCharacter, MFloor, MSphere, MBoundaries;
-	Model<VertexOverlay> MKey, MSplash, MStartGame, MGameOver;
+	Model<VertexOverlay> MKey, MSplash, MStartGame, MGameOver, MTimeWarp;
 	Model<VertexNormMap> MSphereGLTF;
-	DescriptorSet DSGubo, DSCharacter, DSSphere1, DSSphere2, DSSphere3, DSSphere4, DSSphereS, DSBall, DSFloor, DSBoundaries, DSStartGame, DSGameOver;
-	Texture TCharacter, TFloor, TSphere1, TSphere2, TSphere3, TSphere4, TSphere1N, TSphere1M, TSphere4N, TSphere4M, TBoundaries, TStartGame, TGameOver;
+	DescriptorSet DSGubo, DSCharacter, DSSphere1, DSSphere2, DSSphere3, DSSphere4, DSSphereS, DSBall, DSFloor, DSBoundaries, DSStartGame, DSGameOver, DSTimeWarp;
+	Texture TCharacter, TFloor, TSphere1, TSphere2, TSphere3, TSphere4, TSphere1N, TSphere1M, TSphere4N, TSphere4M, TBoundaries, TStartGame, TGameOver, TTimeWarp;
 	
 	// C++ storage for uniform variables
 	MeshUniformBlock uboCharacter, uboFloor, uboBoundaries, uboSphere1, uboSphere2, uboSphere3, uboSphere4, uboSphereS;
 	GlobalUniformBlock gubo;
-	OverlayUniformBlock uboKey, uboSplash, uboStartGame, uboGameOver;
+	OverlayUniformBlock uboKey, uboSplash, uboStartGame, uboGameOver, uboTimeWarp;
 
 
 	// Other application parameters
@@ -223,6 +223,16 @@ class SlotMachine : public BaseProject {
 		vIdx.push_back(1); vIdx.push_back(2); vIdx.push_back(3); 
 	}
 
+	void createTimeWarpIndexed(std::vector<VertexOverlay> &vDef, std::vector<uint32_t> &vIdx) {
+		vDef.push_back({{-1.0f, -0.8f}, {0.0f, 0.0f}});
+		vDef.push_back({{-1.0f, -1.0f}, {0.0f, 1.0f}});
+		vDef.push_back({{-0.8f, -0.8f}, {1.0f, 0.0f}});
+		vDef.push_back({{-0.8f, -1.0f}, {1.0f, 1.0f}});
+
+		vIdx.push_back(0); vIdx.push_back(1); vIdx.push_back(2); 
+		vIdx.push_back(1); vIdx.push_back(2); vIdx.push_back(3); 
+	}
+
 	// Here you load and setup all your Vulkan Models and Texutures.
 	// Here you also create your Descriptor set layouts and load the shaders for the pipelines
 	void localInit() {
@@ -284,7 +294,7 @@ class SlotMachine : public BaseProject {
 		PMesh.init(this, &VMesh, "shaders/MeshVert.spv", "shaders/MeshFrag.spv", {&DSLGubo, &DSLMesh});
 		PMesh.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, true);
 		POverlay.init(this, &VOverlay, "shaders/OverlayVert.spv", "shaders/OverlayFrag.spv", {&DSLOverlay});
-		POverlay.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, false);
+		POverlay.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, true);
 		PNormMap.init(this, &VNorm, "shaders/NMVert.spv", "shaders/NMBlinnFrag.spv", {&DSLGubo, &DSLNormMap});
 		PNormMap.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, false);
 		PNayar.init(this, &VMesh, "shaders/MeshVert.spv", "shaders/NayarFrag.spv", {&DSLGubo, &DSLMesh});
@@ -307,6 +317,10 @@ class SlotMachine : public BaseProject {
 		createImageIndexed(MGameOver.vertices, MGameOver.indices);
 		MGameOver.initMesh(this, &VOverlay);
 
+		createTimeWarpIndexed(MTimeWarp.vertices, MTimeWarp.indices);
+		MTimeWarp.initMesh(this, &VOverlay);
+
+
 		TCharacter.init(this,   "textures/red_Base_Color.png");
 		TFloor.init(this, "textures/floor.jpg");
 		TBoundaries.init(this, "textures/boundaries.png");
@@ -320,6 +334,7 @@ class SlotMachine : public BaseProject {
 		TSphere4M.init(this, "textures/StylizedWoodPlanks_01/Wood_MRAO.png", VK_FORMAT_R8G8B8A8_UNORM);
 		TStartGame.init(this, "textures/StartGame.jpeg");
 		TGameOver.init(this, "textures/GameOver.png");
+		TTimeWarp.init(this, "textures/Clock.png", VK_FORMAT_R8G8B8A8_UNORM);
 		
 		// Init local variables
 		CamH = 1.0f;
@@ -383,7 +398,10 @@ class SlotMachine : public BaseProject {
 					{0, UNIFORM, sizeof(OverlayUniformBlock), nullptr},
 					{1, TEXTURE, 0, &TGameOver}
 				});
-
+		DSTimeWarp.init(this, &DSLOverlay, {
+			{0, UNIFORM, sizeof(OverlayUniformBlock), nullptr},
+			{1, TEXTURE, 0, &TTimeWarp}
+			});
 	}
 
 	// Here you destroy your pipelines and Descriptor Sets!
@@ -405,6 +423,7 @@ class SlotMachine : public BaseProject {
 		DSFloor.cleanup();
 		DSBoundaries.cleanup();
 		DSBall.cleanup();
+		DSTimeWarp.cleanup();
 
 		DSGubo.cleanup();
 		DSStartGame.cleanup();
@@ -431,6 +450,7 @@ class SlotMachine : public BaseProject {
 		TSphere4.cleanup();
 		TStartGame.cleanup();
 		TGameOver.cleanup();
+		TTimeWarp.cleanup();
 
 		
 		// Cleanup models
@@ -442,6 +462,7 @@ class SlotMachine : public BaseProject {
 		MGameOver.cleanup();
 		MSphereGLTF.cleanup();
 		MBoundaries.cleanup();
+		MTimeWarp.cleanup();
 		
 		DSLMesh.cleanup();
 		DSLOverlay.cleanup();
@@ -505,6 +526,10 @@ class SlotMachine : public BaseProject {
 		MGameOver.bind(commandBuffer);
 		DSGameOver.bind(commandBuffer, POverlay, 0, currentImage);
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MGameOver.indices.size()), 1, 0, 0, 0);
+
+		MTimeWarp.bind(commandBuffer);
+		DSTimeWarp.bind(commandBuffer, POverlay, 0, currentImage);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MTimeWarp.indices.size()), 1, 0, 0, 0);
 		
 	}
 
@@ -795,6 +820,9 @@ class SlotMachine : public BaseProject {
 
 		uboGameOver.visible = (gameState == 2) ? 1.0f : 0.0f;
 		DSGameOver.map(currentImage, &uboGameOver, sizeof(uboGameOver), 0);
+
+		uboTimeWarp.visible = (timeWarp == 1) ? 1.0f : 0.0f;
+		DSTimeWarp.map(currentImage, &uboTimeWarp, sizeof(uboTimeWarp), 0);
 	}	
 };
 
