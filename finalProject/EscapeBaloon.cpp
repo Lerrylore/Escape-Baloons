@@ -437,7 +437,6 @@ class SlotMachine : public BaseProject {
 		MCharacter.cleanup();
 		MFloor.cleanup();
 		MGameOver.cleanup();
-		MSplash.cleanup();
 		MSphere.cleanup();
 		MStartGame.cleanup();
 		MGameOver.cleanup();
@@ -784,8 +783,8 @@ class SlotMachine : public BaseProject {
 					gameState = 1;
 					once = 1;
 					timeWarp = 0;
-					auto start = std::chrono::high_resolution_clock::now();
-					auto finalTime = start;
+					start = std::chrono::high_resolution_clock::now();
+					finalTime = start;
 				}
 				break;
 			}
