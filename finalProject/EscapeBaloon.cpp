@@ -224,10 +224,10 @@ class SlotMachine : public BaseProject {
 	}
 
 	void createTimeWarpIndexed(std::vector<VertexOverlay> &vDef, std::vector<uint32_t> &vIdx) {
-		vDef.push_back({{-1.0f, -0.8f}, {0.0f, 0.0f}});
-		vDef.push_back({{-1.0f, -1.0f}, {0.0f, 1.0f}});
-		vDef.push_back({{-0.8f, -0.8f}, {1.0f, 0.0f}});
-		vDef.push_back({{-0.8f, -1.0f}, {1.0f, 1.0f}});
+		vDef.push_back({{-0.95f, -0.8f}, {0.0f, 0.0f}});
+		vDef.push_back({{-0.95f, -0.95f}, {1.0f, 0.0f}});
+		vDef.push_back({{-0.8f, -0.8f}, {0.0f, 1.0f}});
+		vDef.push_back({{-0.8f, -0.95f}, {1.0f, 1.0f}});
 
 		vIdx.push_back(0); vIdx.push_back(1); vIdx.push_back(2); 
 		vIdx.push_back(1); vIdx.push_back(2); vIdx.push_back(3); 
