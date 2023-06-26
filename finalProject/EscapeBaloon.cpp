@@ -31,6 +31,11 @@ struct OverlayUniformBlock {
 	alignas(4) float visible;
 };
 
+struct OverlayDynamicUniformBlock {
+	alignas(4) float visible;
+	alignas(16) glm::mat4 mvpMat;
+};
+
 struct GlobalUniformBlock {
 	alignas(4) float cosout;
 	alignas(4) float cosin;
@@ -66,10 +71,21 @@ struct MeshCounters {
 	int shatter = 0;
 };
 
-
+float offset = 1;
+const float offIncrement = 1;
 float gameTime;
 
-
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+	{
+    if (key == GLFW_KEY_UP && action == GLFW_PRESS)
+		{
+		offset -= offIncrement;
+		}
+	if (key == GLFW_KEY_DOWN && action == GLFW_PRESS)
+		{
+		offset += offIncrement;
+		}
+	}
 void GameLogic(float deltaT, float Ar, glm::mat4 &ViewPrj, glm::mat4 &World);
 // MAIN ! 
 class SlotMachine : public BaseProject {
@@ -94,25 +110,30 @@ class SlotMachine : public BaseProject {
 	Pipeline POverlay;
 	Pipeline PNormMap;
 	Pipeline PNayar;
+	Pipeline POverlayDynamic;
 
 	// Models, textures and Descriptors (values assigned to the uniforms)
 	// Please note that Model objects depends on the corresponding vertex structure
 	Model<VertexMesh> MCharacter, MFloor, MSphere, MBoundaries;
-	Model<VertexOverlay> MKey, MSplash, MStartGame, MGameOver, MTimeWarp;
+	Model<VertexOverlay> MKey, MSplash, MStartGame, MGameOver, MTimeWarp, MMenuCursor;
 	Model<VertexNormMap> MSphereGLTF;
-	DescriptorSet DSGubo, DSCharacter, DSSphere1, DSSphere2, DSSphere3, DSSphere4, DSSphereS, DSBall, DSFloor, DSBoundaries, DSStartGame, DSGameOver, DSTimeWarp;
-	Texture TCharacter, TFloor, TSphere1, TSphere2, TSphere3, TSphere4, TSphere1N, TSphere1M, TSphere4N, TSphere4M, TBoundaries, TStartGame, TGameOver, TTimeWarp;
+	DescriptorSet DSGubo, DSCharacter, DSSphere1, DSSphere2, DSSphere3, DSSphere4, DSSphereS, DSBall, DSFloor, 
+		DSBoundaries, DSStartGame, DSGameOver, DSTimeWarp, DSMenuCursor;
+	Texture TCharacter, TFloor, TSphere1, TSphere2, TSphere3, TSphere4, TSphere1N, TSphere1M, TSphere4N, TSphere4M, TBoundaries, TStartGame, TGameOver, TTimeWarp, TTMenuCursor;
 	
 	// C++ storage for uniform variables
 	MeshUniformBlock uboCharacter, uboFloor, uboBoundaries, uboSphere1, uboSphere2, uboSphere3, uboSphere4, uboSphereS;
 	GlobalUniformBlock gubo;
 	OverlayUniformBlock uboKey, uboSplash, uboStartGame, uboGameOver, uboTimeWarp;
+	OverlayDynamicUniformBlock uboCursor;
 
 
 	// Other application parameters
 	float CamH, CamRadius, CamPitch, CamYaw;
 	MeshCounters meshCounters;
 	int gameState = 0;
+	bool direction = 1;
+	float speedMultiplier = 1.0f;
 
 
 	// Here you set the main application parameters
@@ -128,6 +149,7 @@ class SlotMachine : public BaseProject {
 		uniformBlocksInPool = 20;
 		texturesInPool = 20;
 		setsInPool = 20;
+		
 		
 		Ar = (float)windowWidth / (float)windowHeight;
 	}
@@ -300,6 +322,8 @@ class SlotMachine : public BaseProject {
 		PNayar.init(this, &VMesh, "shaders/MeshVert.spv", "shaders/NayarFrag.spv", {&DSLGubo, &DSLMesh});
 		PBoundaries.init(this, &VMesh, "shaders/MeshVert.spv", "shaders/FragTransparent.spv", {&DSLGubo, &DSLMesh});
 		PBoundaries.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, true);
+		POverlayDynamic.init(this, &VOverlay, "shaders/OverlayVertDynamic.spv", "shaders/OverlayFrag.spv", {&DSLOverlay});
+		POverlayDynamic.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, true);
 
 		MCharacter.init(this,   &VMesh, "Models/MainCharacter.obj", OBJ);
 		
@@ -320,6 +344,9 @@ class SlotMachine : public BaseProject {
 		createTimeWarpIndexed(MTimeWarp.vertices, MTimeWarp.indices);
 		MTimeWarp.initMesh(this, &VOverlay);
 
+		createTimeWarpIndexed(MMenuCursor.vertices, MMenuCursor.indices);
+		MMenuCursor.initMesh(this, &VOverlay);
+
 
 		TCharacter.init(this,   "textures/red_Base_Color.png");
 		TFloor.init(this, "textures/floor.jpg");
@@ -332,9 +359,10 @@ class SlotMachine : public BaseProject {
 		TSphere4.init(this, "textures/StylizedWoodPlanks_01/StylizedWoodPlanks_01_basecolor.jpg");
 		TSphere4N.init(this, "textures/StylizedWoodPlanks_01/StylizedWoodPlanks_01_normal.jpg", VK_FORMAT_R8G8B8A8_UNORM);
 		TSphere4M.init(this, "textures/StylizedWoodPlanks_01/Wood_MRAO.png", VK_FORMAT_R8G8B8A8_UNORM);
-		TStartGame.init(this, "textures/StartGame.jpeg");
+		TStartGame.init(this, "textures/StartGame2.jpeg");
 		TGameOver.init(this, "textures/GameOver.png");
 		TTimeWarp.init(this, "textures/Clock.png", VK_FORMAT_R8G8B8A8_UNORM);
+		TTMenuCursor.init(this, "textures/Menu_Cursor.png");
 		
 		// Init local variables
 		CamH = 1.0f;
@@ -352,6 +380,7 @@ class SlotMachine : public BaseProject {
 		PNormMap.create();
 		PNayar.create();
 		PBoundaries.create();
+		POverlayDynamic.create();
 		// Here you define the data set
 		DSCharacter.init(this, &DSLMesh, {
 					{0, UNIFORM, sizeof(MeshUniformBlock), nullptr},
@@ -402,6 +431,11 @@ class SlotMachine : public BaseProject {
 			{0, UNIFORM, sizeof(OverlayUniformBlock), nullptr},
 			{1, TEXTURE, 0, &TTimeWarp}
 			});
+
+		DSMenuCursor.init(this, &DSLOverlay, {
+			{0, UNIFORM, sizeof(OverlayDynamicUniformBlock), nullptr},
+			{1, TEXTURE, 0, &TTMenuCursor}
+			});
 	}
 
 	// Here you destroy your pipelines and Descriptor Sets!
@@ -413,6 +447,7 @@ class SlotMachine : public BaseProject {
 		PNormMap.cleanup();
 		PNayar.cleanup();
 		PBoundaries.cleanup();
+		POverlayDynamic.cleanup();
 		// Cleanup datasets
 		DSCharacter.cleanup();
 		DSSphere1.cleanup();
@@ -424,6 +459,7 @@ class SlotMachine : public BaseProject {
 		DSBoundaries.cleanup();
 		DSBall.cleanup();
 		DSTimeWarp.cleanup();
+		DSMenuCursor.cleanup();
 
 		DSGubo.cleanup();
 		DSStartGame.cleanup();
@@ -451,6 +487,7 @@ class SlotMachine : public BaseProject {
 		TStartGame.cleanup();
 		TGameOver.cleanup();
 		TTimeWarp.cleanup();
+		TTMenuCursor.cleanup();
 
 		
 		// Cleanup models
@@ -463,6 +500,7 @@ class SlotMachine : public BaseProject {
 		MSphereGLTF.cleanup();
 		MBoundaries.cleanup();
 		MTimeWarp.cleanup();
+		MMenuCursor.cleanup();
 		
 		DSLMesh.cleanup();
 		DSLOverlay.cleanup();
@@ -475,6 +513,7 @@ class SlotMachine : public BaseProject {
 		POverlay.destroy();
 		PNormMap.destroy();
 		PNayar.destroy();
+		POverlayDynamic.destroy();
 	}
 	
 	// Here it is the creation of the command buffer:
@@ -517,11 +556,19 @@ class SlotMachine : public BaseProject {
 		DSBoundaries.bind(commandBuffer, PBoundaries, 1, currentImage);
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MBoundaries.indices.size()), 1, 0, 0, 0);
 
+		
+
 		POverlay.bind(commandBuffer);
 		MStartGame.bind(commandBuffer);
 		DSStartGame.bind(commandBuffer, POverlay, 0, currentImage);
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MStartGame.indices.size()), 1, 0, 0, 0);
 		
+		POverlayDynamic.bind(commandBuffer);
+		MMenuCursor.bind(commandBuffer);
+		DSMenuCursor.bind(commandBuffer, POverlayDynamic, 0, currentImage);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MMenuCursor.indices.size()), 1, 0, 0, 0);
+		
+
 		POverlay.bind(commandBuffer);
 		MGameOver.bind(commandBuffer);
 		DSGameOver.bind(commandBuffer, POverlay, 0, currentImage);
@@ -530,6 +577,8 @@ class SlotMachine : public BaseProject {
 		MTimeWarp.bind(commandBuffer);
 		DSTimeWarp.bind(commandBuffer, POverlay, 0, currentImage);
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MTimeWarp.indices.size()), 1, 0, 0, 0);
+
+		
 		
 	}
 
@@ -559,6 +608,18 @@ class SlotMachine : public BaseProject {
 		clearUbo(&uboSphere3,0);
 		clearUbo(&uboSphere4,0);
 	}
+
+	//Update cursor animation
+	glm::vec2 updateCursorAnimation(glm::vec2 currentPos, bool direction) {
+		float speed = 0.00085;
+		if (direction) {
+			currentPos.x += speed;
+		}
+		else {
+			currentPos.x -= speed;
+		}
+		return currentPos;
+	}
 	// Here is where you update the uniforms.
 	// Very likely this will be where you will be writing the logic of your application.
 	void updateUniformBuffer(uint32_t currentImage) {
@@ -578,13 +639,13 @@ class SlotMachine : public BaseProject {
 		bool fire = false;
 		getSixAxis(deltaT, m, r, fire);
 		deltaT2 = deltaT;
+		float spawnRate = 1.0f;
 		GLFWgamepadstate state;
 		glfwGetGamepadState(GLFW_JOYSTICK_1, &state);
 		if((glfwGetKey(window, GLFW_KEY_Q) || state.buttons[GLFW_GAMEPAD_BUTTON_TRIANGLE]) && once ) {
 			timeWarp = 1;
 			startWarpTimeCD = std::chrono::high_resolution_clock::now();
 			once = 0;
-			printf("%f\n", timeWarp);
 		}
 
 		// getSixAxis() is defined in Starter.hpp in the base class.
@@ -677,16 +738,24 @@ class SlotMachine : public BaseProject {
 		static glm::mat4 tempWorldMatrix = glm::mat4(1);
 		static glm::vec3 tempPos = glm::vec3(1);
 		float lamba = 10.0f;
+		if (offset == 1) speedMultiplier = 1.0f;
+		if (offset == 2) speedMultiplier = 1.25f;
+		if (offset == 3) { speedMultiplier = 1.5f; spawnRate = 0.8f; }
+		if (offset == 4) { speedMultiplier = 2.0f; spawnRate = 0.5; }
 		
 		switch(gameState) {
 			case 0: {
 				if(glfwGetKey(window, GLFW_KEY_ENTER) || state.buttons[GLFW_GAMEPAD_BUTTON_CROSS]) {
 					gameState = 1;
 				}
+				glfwSetKeyCallback(window, key_callback);
+				if (offset >= 1+4*offIncrement) offset = 1;
+				if (offset <= 1.0f-offIncrement) offset = 1+3*offIncrement;
+				
 				break;
 			}
 			case 1: {
-				if (spawnTime >= 1.0f || !flaggswag) {
+				if (spawnTime >= spawnRate || !flaggswag) {
 					glm::vec3 positionToTrack = Pos;
 					wave.addBall(positionToTrack);
 					finalTime = currentTime;
@@ -729,9 +798,9 @@ class SlotMachine : public BaseProject {
 				DSCharacter.map(currentImage, &uboCharacter, sizeof(uboCharacter), 0);
 	
 				for(currentBall = wave.balls.begin(); currentBall != wave.balls.end(); currentBall++) {
-					currentBall->updatePosition(deltaT2);
+					currentBall->updatePosition(deltaT2*speedMultiplier);
 					if (glm::distance(currentBall->position - glm::vec3(0.0f, currentBall->size, 0.0f), Pos) <= currentBall->size || gameTime > 120.0f) {
-						gameState = 2;
+						gameState = 2; //lose
 					}
 				}
 				wave.removeOutOfBoundBalls();
@@ -814,6 +883,30 @@ class SlotMachine : public BaseProject {
 				break;
 			}
 		}
+		static glm::vec2 startCursorPosition = glm::vec3(0);
+		static glm::vec2 oldStartCursorPosition = startCursorPosition;
+		static glm::vec2 cursorPosition;
+		
+		if (offset == 1) startCursorPosition = glm::vec2(0.75, 0.9);
+		if (offset == 2) startCursorPosition = glm::vec2(1, 1.1);
+		if (offset == 3) startCursorPosition = glm::vec2(0.80, 1.25);
+		if (offset == 4) startCursorPosition = glm::vec2(1.30, 1.4);
+		if (oldStartCursorPosition - startCursorPosition == glm::vec2(0,0)) {
+			if (cursorPosition.x > 0.075 + startCursorPosition.x)
+				direction = 0;
+			if (cursorPosition.x < startCursorPosition.x)
+				direction = 1;
+		
+		}
+		else {
+			cursorPosition = startCursorPosition;
+		}
+		cursorPosition = updateCursorAnimation(cursorPosition, direction);
+		printf("%f\n", direction);
+
+		uboCursor.visible = (gameState == 0) ? 1.0f : 0.0f;
+		uboCursor.mvpMat = glm::translate(glm::mat4(1), glm::vec3(cursorPosition, 0));
+		DSMenuCursor.map(currentImage, &uboCursor, sizeof(uboCursor), 0);
 
 		uboStartGame.visible = (gameState == 0) ? 1.0f : 0.0f;
 		DSStartGame.map(currentImage, &uboStartGame, sizeof(uboStartGame), 0);
@@ -823,6 +916,8 @@ class SlotMachine : public BaseProject {
 
 		uboTimeWarp.visible = (timeWarp == 1) ? 1.0f : 0.0f;
 		DSTimeWarp.map(currentImage, &uboTimeWarp, sizeof(uboTimeWarp), 0);
+
+		oldStartCursorPosition = startCursorPosition;
 	}	
 };
 
