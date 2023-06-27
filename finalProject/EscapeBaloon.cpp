@@ -118,13 +118,13 @@ class SlotMachine : public BaseProject {
 	// Models, textures and Descriptors (values assigned to the uniforms)
 	// Please note that Model objects depends on the corresponding vertex structure
 	Model<VertexMesh> MCharacter, MFloor, MSphere, MBoundaries;
-	Model<VertexOverlay> MKey, MSplash, MStartGame, MGameOver, MWin, MTimeWarp, MMenuCursor;
+	Model<VertexOverlay> MStartGame, MGameOver, MWin, MTimeWarp, MMenuCursor;
 	Model<VertexNormMap> MSphereGLTF;
-	DescriptorSet DSGubo, DSCharacter, DSSphere1, DSSphere2, DSSphere3, DSSphere4, DSSphereS, DSBall, DSFloor, DSBoundaries, DSStartGame, DSGameOver, DSWin, DSTimeWarp, DSMenuCursor;
+	DescriptorSet DSGubo, DSCharacter, DSSphere1, DSSphere2, DSSphere3, DSSphere4, DSFloor, DSBoundaries, DSStartGame, DSGameOver, DSWin, DSTimeWarp, DSMenuCursor;
 	Texture TCharacter, TFloor, TSphere1, TSphere2, TSphere3, TSphere4, TSphere1N, TSphere1M, TSphere4N, TSphere4M, TBoundaries, TStartGame, TGameOver, TWin, TTimeWarp, TTMenuCursor;
 	
 	// C++ storage for uniform variables
-	MeshUniformBlock uboCharacter, uboFloor, uboBoundaries, uboSphere1, uboSphere2, uboSphere3, uboSphere4, uboSphereS;
+	MeshUniformBlock uboCharacter, uboFloor, uboBoundaries, uboSphere1, uboSphere2, uboSphere3, uboSphere4;
 	GlobalUniformBlock gubo;
 	OverlayUniformBlock uboKey, uboSplash, uboStartGame, uboGameOver, uboWin, uboTimeWarp;
 	OverlayDynamicUniformBlock uboCursor;
@@ -148,8 +148,8 @@ class SlotMachine : public BaseProject {
 		
 		// Descriptor pool sizes
 		uniformBlocksInPool = 20;
-		texturesInPool = 20;
-		setsInPool = 20;
+		texturesInPool = 14;
+		setsInPool = 13;
 		
 		
 		Ar = (float)windowWidth / (float)windowHeight;
@@ -449,13 +449,12 @@ class SlotMachine : public BaseProject {
 		// Cleanup datasets
 		DSCharacter.cleanup();
 		DSSphere1.cleanup();
-		DSSphereS.cleanup();
 		DSSphere2.cleanup();
 		DSSphere3.cleanup();
 		DSSphere4.cleanup();
 		DSFloor.cleanup();
 		DSBoundaries.cleanup();
-		DSBall.cleanup();
+
 		DSGubo.cleanup();
 		DSStartGame.cleanup();
 		DSGameOver.cleanup();
@@ -478,7 +477,6 @@ class SlotMachine : public BaseProject {
 		TSphere1M.cleanup();
 		TSphere4N.cleanup();
 		TSphere4M.cleanup();
-
 		TSphere2.cleanup();
 		TSphere3.cleanup();
 		TSphere4.cleanup();
@@ -488,10 +486,10 @@ class SlotMachine : public BaseProject {
 		TTimeWarp.cleanup();
 		TTMenuCursor.cleanup();
 		
+		
 		// Cleanup models
 		MCharacter.cleanup();
 		MFloor.cleanup();
-		MGameOver.cleanup();
 		MWin.cleanup();
 		MSphere.cleanup();
 		MStartGame.cleanup();
@@ -500,7 +498,7 @@ class SlotMachine : public BaseProject {
 		MBoundaries.cleanup();
 		MTimeWarp.cleanup();
 		MMenuCursor.cleanup();
-		
+
 		DSLMesh.cleanup();
 		DSLOverlay.cleanup();
 		DSLNormMap.cleanup();
@@ -520,6 +518,7 @@ class SlotMachine : public BaseProject {
 	// with their buffers and textures
 	
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage) {
+
 		// sets global uniforms (see below fro parameters explanation)
 		DSGubo.bind(commandBuffer, PMesh, 0, currentImage);
 
@@ -790,7 +789,7 @@ class SlotMachine : public BaseProject {
 				cursorPosition = updateCursorAnimation(cursorPosition, direction);
 				
 				oldStartCursorPosition = startCursorPosition;
-				
+				start = std::chrono::high_resolution_clock::now();
 				break;
 			}
 			case GAMEPLAY: {
@@ -896,12 +895,6 @@ class SlotMachine : public BaseProject {
 					clearUbo(&uboSphere4, 0);
 				}
 
-				uboSphereS.amb = 1.0f; uboSphereS.gamma = 180.0f; uboSphereS.sColor = glm::vec3(1.0f);
-				tempPos += glm::vec3(0.1f*deltaT,0,0);
-				tempWorldMatrix =  glm::translate(glm::mat4(1.0), tempPos);
-				uboSphereS.mvpMat[0] = Prj * View * tempWorldMatrix;
-				uboSphereS.mMat[0] = tempWorldMatrix;
-				uboSphereS.nMat[0] = glm::inverse(glm::transpose(tempWorldMatrix));
 				DSSphere1.map(currentImage, &uboSphere1, sizeof(uboSphere1), 0);
 				DSSphere2.map(currentImage, &uboSphere2, sizeof(uboSphere2), 0);
 				DSSphere3.map(currentImage, &uboSphere3, sizeof(uboSphere3), 0);
