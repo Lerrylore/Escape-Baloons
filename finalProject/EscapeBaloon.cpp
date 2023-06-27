@@ -71,17 +71,19 @@ struct MeshCounters {
 	int shatter = 0;
 };
 
+
 float offset = 1;
 const float offIncrement = 1;
 float gameTime;
-
+GLFWgamepadstate dpadState;
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 	{
-    if (key == GLFW_KEY_UP && action == GLFW_PRESS)
+	
+    if ((key == GLFW_KEY_UP) && action == GLFW_PRESS)
 		{
 		offset -= offIncrement;
 		}
-	if (key == GLFW_KEY_DOWN && action == GLFW_PRESS)
+	if ((key == GLFW_KEY_DOWN) && action == GLFW_PRESS)
 		{
 		offset += offIncrement;
 		}
@@ -134,7 +136,7 @@ class SlotMachine : public BaseProject {
 	int gameState = 0;
 	bool direction = 1;
 	float speedMultiplier = 1.0f;
-
+	
 
 	// Here you set the main application parameters
 	void setWindowParameters() {
@@ -648,6 +650,12 @@ class SlotMachine : public BaseProject {
 			once = 0;
 		}
 
+		unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
+		std::default_random_engine rand(seed);
+		std::default_random_engine rand1(seed+1);
+		std::default_random_engine rand2(seed+2);
+		std::uniform_int_distribution<int> distr(0, 1);
+		static glm::vec3 randomDoomColor = glm::vec3(distr(rand),distr(rand1),distr(rand2)) ;
 		// getSixAxis() is defined in Starter.hpp in the base class.
 		// It fills the float point variable passed in its first parameter with the time
 		// since the last call to the procedure.
@@ -661,8 +669,10 @@ class SlotMachine : public BaseProject {
 		static auto start = std::chrono::high_resolution_clock::now();
 		auto currentTime = std::chrono::high_resolution_clock::now();
 		static auto finalTime = start;
+		static auto doomTime = start;
 		gameTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - start).count(); /*TIMER IN SECONDI*/
 		float spawnTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - finalTime).count();
+		float doomSlayerTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - doomTime).count();
 
 		if (timeWarp) {
 			warpTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startWarpTimeCD).count();
@@ -742,16 +752,27 @@ class SlotMachine : public BaseProject {
 		if (offset == 2) speedMultiplier = 1.25f;
 		if (offset == 3) { speedMultiplier = 1.5f; spawnRate = 0.8f; }
 		if (offset == 4) { speedMultiplier = 2.0f; spawnRate = 0.5; }
-		
+		static GLFWgamepadstate oldPadState = dpadState;
 		switch(gameState) {
 			case 0: {
 				if(glfwGetKey(window, GLFW_KEY_ENTER) || state.buttons[GLFW_GAMEPAD_BUTTON_CROSS]) {
 					gameState = 1;
 				}
 				glfwSetKeyCallback(window, key_callback);
+				glfwGetGamepadState(GLFW_JOYSTICK_1, &dpadState);
+				if (dpadState.buttons[GLFW_GAMEPAD_BUTTON_DPAD_UP] != oldPadState.buttons[GLFW_GAMEPAD_BUTTON_DPAD_UP]) {
+					if(dpadState.buttons[GLFW_GAMEPAD_BUTTON_DPAD_UP] == GLFW_PRESS)
+						offset -= 1;
+				}
+				if (dpadState.buttons[GLFW_GAMEPAD_BUTTON_DPAD_DOWN] != oldPadState.buttons[GLFW_GAMEPAD_BUTTON_DPAD_DOWN]) {
+					if(dpadState.buttons[GLFW_GAMEPAD_BUTTON_DPAD_DOWN] == GLFW_PRESS)
+						offset += 1;
+				}
+
 				if (offset >= 1+4*offIncrement) offset = 1;
 				if (offset <= 1.0f-offIncrement) offset = 1+3*offIncrement;
 				
+				oldPadState = dpadState;
 				break;
 			}
 			case 1: {
@@ -782,6 +803,21 @@ class SlotMachine : public BaseProject {
 				}
 				if (gameTime > 110 && (int)(gameTime-110)%2 == 1) {
 					gubo.DlightColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+				}
+				
+				if (offset == 4) {
+					if (doomSlayerTime >= 0.8f)
+						gubo.DlightColor = glm::vec4(randomDoomColor, 1.0f);
+					if (doomSlayerTime < 0.8f)
+						gubo.DlightColor = glm::vec4(0, 0, 0, 1.0f);
+					if (doomSlayerTime > 1.6f)
+					{
+						doomTime = currentTime;
+						float a = distr(rand);
+						float b = distr(rand1);
+						float c = distr(rand2);
+						randomDoomColor = glm::vec3(a,b,c);
+					}
 				}
 				gubo.eyePos = camPos;
 				gubo.lightPos = Pos + glm::vec3(0,6, 0.0f);
@@ -902,7 +938,7 @@ class SlotMachine : public BaseProject {
 			cursorPosition = startCursorPosition;
 		}
 		cursorPosition = updateCursorAnimation(cursorPosition, direction);
-		printf("%f\n", direction);
+
 
 		uboCursor.visible = (gameState == 0) ? 1.0f : 0.0f;
 		uboCursor.mvpMat = glm::translate(glm::mat4(1), glm::vec3(cursorPosition, 0));
