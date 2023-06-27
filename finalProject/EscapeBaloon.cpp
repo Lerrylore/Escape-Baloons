@@ -75,7 +75,7 @@ struct MeshCounters {
 float offset = 1;
 const float offIncrement = 1;
 float gameTime;
-
+GLFWgamepadstate dpadState;
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if (key == GLFW_KEY_UP && action == GLFW_PRESS)
 	{
@@ -456,7 +456,6 @@ class SlotMachine : public BaseProject {
 		DSFloor.cleanup();
 		DSBoundaries.cleanup();
 		DSBall.cleanup();
-
 		DSGubo.cleanup();
 		DSStartGame.cleanup();
 		DSGameOver.cleanup();
@@ -506,7 +505,7 @@ class SlotMachine : public BaseProject {
 		DSLOverlay.cleanup();
 		DSLNormMap.cleanup();
 		DSLGubo.cleanup();
-		
+
 		// Destroies the pipelines
 		PBoundaries.destroy();
 		PMesh.destroy();		
@@ -955,7 +954,7 @@ class SlotMachine : public BaseProject {
 		cursorPosition = updateCursorAnimation(cursorPosition, direction);
 
 
-		uboCursor.visible = (gameState == 0) ? 1.0f : 0.0f;
+		uboCursor.visible = (gameState == START) ? 1.0f : 0.0f;
 		uboCursor.mvpMat = glm::translate(glm::mat4(1), glm::vec3(cursorPosition, 0));
 		DSMenuCursor.map(currentImage, &uboCursor, sizeof(uboCursor), 0);
 		
