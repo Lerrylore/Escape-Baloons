@@ -352,8 +352,8 @@ class EscapeBaloons : public BaseProject {
 		TSphere4.init(this, "textures/StylizedWoodPlanks_01/StylizedWoodPlanks_01_basecolor.jpg");
 		TSphere4N.init(this, "textures/StylizedWoodPlanks_01/StylizedWoodPlanks_01_normal.jpg", VK_FORMAT_R8G8B8A8_UNORM);
 		TSphere4M.init(this, "textures/StylizedWoodPlanks_01/Wood_MRAO.png", VK_FORMAT_R8G8B8A8_UNORM);
-		TStartGame.init(this, "textures/StartGame2.jpeg");
-		TGameOver.init(this, "textures/GameOver.png");
+		TStartGame.init(this, "textures/StartGame3.jpeg");
+		TGameOver.init(this, "textures/GameOverV1.png");
 		TWin.init(this, "textures/Win.png");
 		TTimeWarp.init(this, "textures/Clock.png", VK_FORMAT_R8G8B8A8_UNORM);
 		TTMenuCursor.init(this, "textures/Menu_Cursor.png");
@@ -751,7 +751,7 @@ class EscapeBaloons : public BaseProject {
 		if (offset == 1) speedMultiplier = 1.0f;
 		if (offset == 2) speedMultiplier = 1.25f;
 		if (offset == 3) { speedMultiplier = 1.5f; spawnRate = 0.8f; }
-		if (offset == 4) { speedMultiplier = 2.0f; spawnRate = 0.5; }
+		if (offset == 4) { speedMultiplier = 2.0f; spawnRate = 0.5f; }
 		static GLFWgamepadstate oldPadState = dpadState;
 		switch(gameState) {
 			case START: {
@@ -774,7 +774,7 @@ class EscapeBaloons : public BaseProject {
 				
 				if (offset == 1) startCursorPosition = glm::vec2(0.75, 0.9);
 				if (offset == 2) startCursorPosition = glm::vec2(1, 1.1);
-				if (offset == 3) startCursorPosition = glm::vec2(0.80, 1.25);
+				if (offset == 3) startCursorPosition = glm::vec2(0.75, 1.27);
 				if (offset == 4) startCursorPosition = glm::vec2(1.30, 1.4);
 				if (oldStartCursorPosition - startCursorPosition == glm::vec2(0,0)) {
 					if (cursorPosition.x > 0.075 + startCursorPosition.x)
@@ -930,7 +930,6 @@ class EscapeBaloons : public BaseProject {
 				}
 				break;
 			}
-				
 			case WIN: {
 				if (glfwGetKey(window, GLFW_KEY_ENTER) || state.buttons[GLFW_GAMEPAD_BUTTON_CROSS]) {
 					resetAll();

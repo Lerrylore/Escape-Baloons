@@ -89,7 +89,7 @@ public:
     }
     glm::mat4 getWorldMatrix() {
         glm::mat4 worldMatrix;
-        glm::vec3 perpDirection = glm::cross(direction, glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::vec3 perpDirection = glm::cross(direction, glm::vec3(0.0f, 1.0f, 0.0f));//asse y e direction
         float angle = acos(glm::dot(perpDirection, glm::vec3(1.0f, 0.0f, 0.0f)) / (glm::length(perpDirection) * glm::length(glm::vec3(1.0f, 0.0f, 0.0f))));
         if (perpDirection.z > 0.0f) {
             angle = glm::radians(360 - glm::degrees(angle));
