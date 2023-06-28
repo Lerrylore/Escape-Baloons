@@ -790,6 +790,7 @@ class SlotMachine : public BaseProject {
 				
 				oldStartCursorPosition = startCursorPosition;
 				start = std::chrono::high_resolution_clock::now();
+				oldPadState = dpadState;
 				break;
 			}
 			case GAMEPLAY: {
