@@ -91,7 +91,7 @@ enum GameState : int { START = 0, GAMEPLAY = 1, WIN = 2, GAMEOVER = 3};
 
 void GameLogic(float deltaT, float Ar, glm::mat4 &ViewPrj, glm::mat4 &World);
 // MAIN ! 
-class SlotMachine : public BaseProject {
+class EscapeBaloons : public BaseProject {
 	protected:
 
 	// Current aspect ratio (used by the callback that resized the window
@@ -969,7 +969,7 @@ class SlotMachine : public BaseProject {
 
 // This is the main: probably you do not need to touch this!
 int main() {
-    SlotMachine app;
+	EscapeBaloons app;
 
     try {
         app.run();
