@@ -148,8 +148,8 @@ class SlotMachine : public BaseProject {
 		
 		// Descriptor pool sizes
 		uniformBlocksInPool = 20;
-		texturesInPool = 14;
-		setsInPool = 13;
+		texturesInPool = 20;
+		setsInPool = 20;
 		
 		
 		Ar = (float)windowWidth / (float)windowHeight;
