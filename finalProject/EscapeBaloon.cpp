@@ -607,13 +607,13 @@ class EscapeBaloons : public BaseProject {
 	}
 
 	//Update cursor animation
-	glm::vec2 updateCursorAnimation(glm::vec2 currentPos, bool direction) {
-		float speed = 0.00085;
+	glm::vec2 updateCursorAnimation(glm::vec2 currentPos, bool direction, float deltaT) {
+		float speed = 0.105;
 		if (direction) {
-			currentPos.x += speed;
+			currentPos.x += speed * deltaT;
 		}
 		else {
-			currentPos.x -= speed;
+			currentPos.x -= speed * deltaT;
 		}
 		return currentPos;
 	}
@@ -786,7 +786,7 @@ class EscapeBaloons : public BaseProject {
 				else {
 					cursorPosition = startCursorPosition;
 				}
-				cursorPosition = updateCursorAnimation(cursorPosition, direction);
+				cursorPosition = updateCursorAnimation(cursorPosition, direction, deltaT);
 				
 				oldStartCursorPosition = startCursorPosition;
 				start = std::chrono::high_resolution_clock::now();
@@ -944,7 +944,7 @@ class EscapeBaloons : public BaseProject {
 				break;
 			}
 		}
-		cursorPosition = updateCursorAnimation(cursorPosition, direction);
+		cursorPosition = updateCursorAnimation(cursorPosition, direction, deltaT);
 
 
 		uboCursor.visible = (gameState == START) ? 1.0f : 0.0f;
