@@ -46,9 +46,9 @@ Stub
 
 ## Contributors
 
-Lorenzo Corrado - lorenzo.corrado@mail.polimi.it
+- ### [Lorenzo Corrado](https://github.com/Lerrylore)<br/>lorenzo.corrado@mail.polimi.it
 
-Filippo Pantaleone
+- ### [Filippo Pantaleone](https://github.com/thepantalion)<br/>
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
