@@ -27,7 +27,8 @@ Windows 10 or older versions.
 
 
 ### Installation
-#THIS IS FOR WINDOWS ONLY:
+
+*Windows setup:*
 1. Download Final Project folder from this repository.
 2. Start the runtime installer of Vulkan (make sure to download in C:/VulkanSDK/)
 3. Run the finalProject.exe
