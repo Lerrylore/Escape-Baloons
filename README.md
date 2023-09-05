@@ -7,8 +7,8 @@
 
 
 ## About The Project
-
-STUB
+Escape Ballon is a small graphics application made entirely with Vulkan API where the player needs to flee from relentless balls that are trying to chase him!
+It was made for the "Computer Graphics" course at Politecnico di Milano and it is been graded 30/30.
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
@@ -38,8 +38,15 @@ Windows 10 or older versions.
 
 
 ## How to Play
-
-Stub
+**Keyboard controls:** Use the following keys to control the user:
+   - `W` - Move forward
+   - `A` - Strafe left
+   - `S` - Move backward
+   - `D` - Strafe right
+   - `Q` - Stop time (once for attempt!)
+**Gamepad controls:** Use the following keys to control the user:
+   - `Analog Stick` - To move
+   - `Triangle` - Stop time (once for attempt!)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
