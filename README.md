@@ -44,6 +44,7 @@ Windows 10 or older versions.
    - `S` - Move backward
    - `D` - Strafe right
    - `Q` - Stop time (once for attempt!)
+     
 **Gamepad controls:** Use the following keys to control the user:
    - `Analog Stick` - To move
    - `Triangle` - Stop time (once for attempt!)
