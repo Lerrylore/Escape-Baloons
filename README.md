@@ -11,6 +11,7 @@ Escape Ballon is a small graphics application made entirely with Vulkan API wher
 It was made for the "Computer Graphics" course at Politecnico di Milano and it is been graded 30/30.
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+[![Video Demonstration](https://img.youtube.com/vi/ffrccS-VK4E/0.jpg)](https://youtu.be/ffrccS-VK4E)
 
 
 ### Built With Vulkan
